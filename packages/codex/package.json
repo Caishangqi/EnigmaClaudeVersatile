@@ -1,6 +1,6 @@
 {
   "name": "claude-versatile-codex",
-  "version": "0.3.0-alpha.2",
+  "version": "0.3.0-alpha.3",
   "description": "Claude Versatile MCP Server for OpenAI-compatible APIs (Codex)",
   "type": "module",
   "bin": {
