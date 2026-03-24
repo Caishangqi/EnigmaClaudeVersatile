@@ -1,6 +1,6 @@
 {
   "name": "claude-versatile-root",
-  "version": "0.2.0",
+  "version": "0.3.0-alpha.0",
   "private": true,
   "description": "Claude Code orchestrator with external AI model delegation via MCP",
   "type": "module",
