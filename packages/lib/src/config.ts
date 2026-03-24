@@ -36,6 +36,10 @@ export interface AgentBehaviorConfig {
     maxIterations: number;
     maxTimeMs: number;
     singleCallTimeout: number;
+    /** Enable auto iteration control (L1+L2). Default: true. */
+    autoMode: boolean;
+    /** Maximum cumulative token budget for autoMode. Default: 100000. 0 = unlimited. */
+    maxTokenBudget: number;
 }
 
 // ============================================================
@@ -62,6 +66,8 @@ export const TEMPLATES: Record<string, unknown> = {
         maxIterations: 20,
         maxTimeMs: 300000,
         singleCallTimeout: 120000,
+        autoMode: true,
+        maxTokenBudget: 100000,
     },
 };
 

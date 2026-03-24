@@ -176,6 +176,13 @@ async function searchPattern(args: Record<string, unknown>, workingDir: string):
     }
 }
 
+async function plan(args: Record<string, unknown>, _workingDir: string): Promise<AgentToolResult> {
+    const estimatedSteps = Number(args.estimated_steps ?? 10);
+    const planText = String(args.plan ?? "");
+    const output = JSON.stringify({estimated_steps: estimatedSteps, plan: planText});
+    return {success: true, output, charCount: output.length};
+}
+
 async function done(args: Record<string, unknown>, _workingDir: string): Promise<AgentToolResult> {
     const summary = String(args.summary ?? "");
     const answer = String(args.answer ?? "");
@@ -217,6 +224,15 @@ const TOOL_DEFS: AgentToolDef[] = [
             maxResults: {type: "number", description: "Max results to return (default: 20)", required: false},
         },
         execute: searchPattern,
+    },
+    {
+        name: "plan",
+        description: "Output your execution plan before starting work. Call this FIRST before any other tool. Estimate how many steps you'll need and describe your approach.",
+        parameters: {
+            estimated_steps: {type: "number", description: "Estimated number of tool calls needed to complete the task", required: true},
+            plan: {type: "string", description: "Brief description of your planned approach", required: true},
+        },
+        execute: plan,
     },
     {
         name: "done",

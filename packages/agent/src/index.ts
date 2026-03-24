@@ -23,6 +23,8 @@ const DEFAULT_MODEL = configValue(agentCfg.defaultModel, "AGENT_DEFAULT_MODEL", 
 const DEFAULT_MAX_ITERATIONS = configValue(agentCfg.maxIterations, "AGENT_MAX_ITERATIONS", 20);
 const DEFAULT_MAX_TIME_MS = configValue(agentCfg.maxTimeMs, "AGENT_MAX_TIME_MS", 300_000);
 const SINGLE_CALL_TIMEOUT = configValue(agentCfg.singleCallTimeout, "AGENT_SINGLE_CALL_TIMEOUT", 120_000);
+const DEFAULT_AUTO_MODE = configValue(agentCfg.autoMode, "AGENT_AUTO_MODE", true);
+const DEFAULT_MAX_TOKEN_BUDGET = configValue(agentCfg.maxTokenBudget, "AGENT_MAX_TOKEN_BUDGET", 100_000);
 
 /** Collect API keys from all provider config files + env to pass to Worker. */
 function collectEnv(): Record<string, string> {
@@ -66,10 +68,14 @@ function formatStatus(task: TaskState): string {
 function formatResult(result: AgentResult): string {
     const lines = [
         `Agent completed in ${formatDuration(result.elapsedMs)} (${result.iterationCount} iterations, ${formatTokens(result.tokensUsed)} tokens)`,
-        "",
-        "--- Summary ---",
-        result.summary,
     ];
+    if (result.effectiveMaxIterations) {
+        lines.push(`Effective iteration limit: ${result.effectiveMaxIterations} (auto-estimated)`);
+    }
+    if (result.terminationReason) {
+        lines.push(`Termination: ${result.terminationReason}`);
+    }
+    lines.push("", "--- Summary ---", result.summary);
     if (result.filesRead.length > 0) {
         lines.push("", `Files read (${result.filesRead.length}): ${result.filesRead.join(", ")}`);
     }
@@ -87,13 +93,23 @@ const textErr = (s: string) => ({content: [{type: "text" as const, text: s}], is
 // ============================================================
 
 /** Launch a worker process for a task. Returns the task. */
-function launchTask(goal: string, context: string | undefined, workingDir: string, model: string, maxIterations: number, maxTimeMs: number): TaskState {
+function launchTask(goal: string, context: string | undefined, workingDir: string, model: string, maxIterations: number, maxTimeMs: number, autoMode: boolean, maxTokenBudget: number): TaskState {
+    // When autoMode, ensure hardCap is at least 50
+    const effectiveMaxIterations = autoMode ? Math.max(maxIterations, 50) : maxIterations;
+    const enabledTools: import("./agent/types.js").AgentToolName[] = autoMode
+        ? ["plan", "read_file", "list_dir", "search_pattern", "done"]
+        : ["read_file", "list_dir", "search_pattern", "done"];
+
     const config = {
         goal, context,
         workingDir: workingDir || process.cwd(),
-        model, maxIterations, maxTimeMs,
-        enabledTools: ["read_file", "list_dir", "search_pattern", "done"] as import("./agent/types.js").AgentToolName[],
+        model,
+        maxIterations: effectiveMaxIterations,
+        maxTimeMs,
+        enabledTools,
         singleCallTimeout: SINGLE_CALL_TIMEOUT,
+        autoMode,
+        maxTokenBudget,
         env: collectEnv(),
     };
 
@@ -193,15 +209,18 @@ server.tool(
         context: z.string().max(50_000).optional().describe("Additional context from Claude"),
         workingDir: z.string().optional().describe("Working directory path (default: project root)"),
         model: z.string().max(100).default(DEFAULT_MODEL).describe(`LLM model for agent reasoning (default: ${DEFAULT_MODEL})`),
-        maxIterations: z.number().int().min(1).max(50).default(DEFAULT_MAX_ITERATIONS).describe("Max reasoning iterations"),
+        maxIterations: z.number().int().min(1).max(100).default(DEFAULT_MAX_ITERATIONS).describe("Max reasoning iterations. When autoMode=true, serves as hard safety cap (system sets effective limit dynamically)."),
         maxTimeMs: z.number().int().min(10_000).max(1_800_000).default(DEFAULT_MAX_TIME_MS).describe("Total time limit in ms"),
         wait: z.boolean().default(true).describe("If true (default), block until agent completes and return result. If false, return taskId immediately for async polling."),
+        autoMode: z.boolean().default(DEFAULT_AUTO_MODE).describe("When true, system auto-controls iteration count via complexity estimation and repetition detection. maxIterations becomes a hard safety cap."),
+        maxTokenBudget: z.number().int().min(0).max(500_000).default(DEFAULT_MAX_TOKEN_BUDGET).describe("Maximum cumulative token budget. 0 = unlimited. Only enforced when autoMode=true."),
     },
-    async ({goal, context, workingDir, model, maxIterations, maxTimeMs, wait}) => {
-        const task = launchTask(goal, context, workingDir ?? "", model, maxIterations, maxTimeMs);
+    async ({goal, context, workingDir, model, maxIterations, maxTimeMs, wait, autoMode, maxTokenBudget}) => {
+        const task = launchTask(goal, context, workingDir ?? "", model, maxIterations, maxTimeMs, autoMode, maxTokenBudget);
 
         if (!wait) {
-            return text(`Agent started [${task.taskId}]\nModel: ${model} | Max iterations: ${maxIterations} | Timeout: ${formatDuration(maxTimeMs)}\nGoal: ${goal.slice(0, 200)}${goal.length > 200 ? "..." : ""}`);
+            const modeLabel = autoMode ? "auto" : `max ${maxIterations}`;
+            return text(`Agent started [${task.taskId}]\nModel: ${model} | Iterations: ${modeLabel} | Timeout: ${formatDuration(maxTimeMs)}\nGoal: ${goal.slice(0, 200)}${goal.length > 200 ? "..." : ""}`);
         }
 
         // Blocking mode: wait for completion

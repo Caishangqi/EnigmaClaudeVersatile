@@ -58,6 +58,10 @@ export interface AgentConfig {
     /** Per-LLM-call timeout in ms. */
     singleCallTimeout: number;
     enabledTools: AgentToolName[];
+    /** When true, system auto-controls iteration count via L1+L2. maxIterations becomes hard cap. */
+    autoMode: boolean;
+    /** Maximum cumulative token budget. 0 = unlimited. Only enforced when autoMode=true. */
+    maxTokenBudget: number;
     /** Environment variables passed to Worker (API keys, base URLs). */
     env: Record<string, string>;
 }
@@ -66,7 +70,7 @@ export interface AgentConfig {
 // Agent Tool System
 // ============================================================
 
-export type AgentToolName = "read_file" | "list_dir" | "search_pattern" | "done";
+export type AgentToolName = "read_file" | "list_dir" | "search_pattern" | "done" | "plan";
 
 export interface AgentToolDef {
     name: AgentToolName;
@@ -131,6 +135,10 @@ export interface AgentResult {
     tokensUsed: number;
     iterationCount: number;
     elapsedMs: number;
+    /** If autoMode was active, the effective iteration limit set by L1. */
+    effectiveMaxIterations?: number;
+    /** Termination reason when forced by L2 controls. */
+    terminationReason?: string;
 }
 
 // ============================================================

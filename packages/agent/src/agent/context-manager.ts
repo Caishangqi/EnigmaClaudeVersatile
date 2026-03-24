@@ -21,6 +21,11 @@ export class ContextManager {
     private config: ContextManagerConfig;
     private totalTokens = 0;
 
+    // L2: Repetition detection
+    private recentToolCalls: Array<{name: string; args: string}> = [];
+    private static readonly REPETITION_WINDOW = 5;
+    private static readonly REPETITION_THRESHOLD = 2;
+
     constructor(config?: Partial<ContextManagerConfig>) {
         this.config = {...DEFAULT_CONFIG, ...config};
     }
@@ -111,6 +116,39 @@ export class ContextManager {
         };
         this.entries = [first, summaryEntry, ...lastTwo];
         this.totalTokens = this.entries.reduce((sum, e) => sum + e.estimatedTokens, 0);
+    }
+
+    // ============================================================
+    // L2: Repetition Detection
+    // ============================================================
+
+    /** Record a tool call for repetition tracking. */
+    trackToolCall(name: string, argsJson: string): void {
+        this.recentToolCalls.push({name, args: argsJson});
+        if (this.recentToolCalls.length > ContextManager.REPETITION_WINDOW) {
+            this.recentToolCalls.shift();
+        }
+    }
+
+    /**
+     * Check if the agent is stuck in a repetition loop.
+     * Returns true if the last N consecutive tool calls are identical (same name + args).
+     */
+    detectRepetition(): boolean {
+        const len = this.recentToolCalls.length;
+        if (len < ContextManager.REPETITION_THRESHOLD) return false;
+
+        const last = this.recentToolCalls[len - 1];
+        let consecutiveCount = 1;
+        for (let i = len - 2; i >= 0; i--) {
+            const prev = this.recentToolCalls[i];
+            if (prev.name === last.name && prev.args === last.args) {
+                consecutiveCount++;
+            } else {
+                break;
+            }
+        }
+        return consecutiveCount >= ContextManager.REPETITION_THRESHOLD;
     }
 
     /** Number of entries in the context. */

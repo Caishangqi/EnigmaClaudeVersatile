@@ -5,6 +5,7 @@ import {getToolDefs} from "./tools.js";
 
 const MAX_PARSE_FAILURES = 3;
 const SUMMARIZE_TIMEOUT = 30_000;
+const MAX_REDIRECTS = 2;
 
 export interface PlannerCallbacks {
     onIteration: (step: string, iteration: number, filesRead: string[], tokensUsed: number) => void;
@@ -27,6 +28,14 @@ export class Planner {
     private totalTokensUsed = 0;
     private iterationCount = 0;
 
+    // L1: Dynamic iteration budget
+    private effectiveMaxIterations: number;
+    private planReceived = false;
+
+    // L2: Token budget + repetition redirect counter
+    private readonly maxTokenBudget: number;
+    private redirectCount = 0;
+
     constructor(provider: CompletionProvider, config: AgentConfig, callbacks: PlannerCallbacks) {
         this.provider = provider;
         this.config = config;
@@ -34,6 +43,12 @@ export class Planner {
         this.contextManager = new ContextManager();
         this.tools = getToolDefs(config.enabledTools);
         this.openaiTools = buildOpenAITools(this.tools);
+
+        // L1: autoMode uses maxIterations as hard cap; non-autoMode uses it directly
+        this.effectiveMaxIterations = config.maxIterations;
+
+        // L2: Token budget only enforced in autoMode (0 = unlimited)
+        this.maxTokenBudget = config.autoMode ? (config.maxTokenBudget ?? 0) : 0;
     }
 
     /** Run the full ReAct loop until done or limits reached. */
@@ -49,16 +64,21 @@ export class Planner {
 
         let consecutiveParseFailures = 0;
 
-        while (this.iterationCount < this.config.maxIterations) {
+        while (this.iterationCount < this.effectiveMaxIterations) {
             // Check time limit
             const elapsed = Date.now() - startTime;
             if (elapsed >= this.config.maxTimeMs) {
-                return this.buildForcedResult(startTime, "Time limit reached.");
+                return this.buildForcedResult(startTime, "Time limit reached.", "time_limit");
             }
 
             // Check abort
             if (this.abortController.signal.aborted) {
-                return this.buildForcedResult(startTime, "Task cancelled.");
+                return this.buildForcedResult(startTime, "Task cancelled.", "cancelled");
+            }
+
+            // L2: Token budget check
+            if (this.maxTokenBudget > 0 && this.totalTokensUsed >= this.maxTokenBudget) {
+                return this.buildForcedResult(startTime, "Token budget exceeded.", "token_budget");
             }
 
             // Summarize if context is getting large
@@ -83,7 +103,7 @@ export class Planner {
                 console.error(`[Agent] Parse failure #${consecutiveParseFailures + 1}. content: ${completion.content.slice(0, 300)}, toolCalls: ${JSON.stringify(completion.toolCalls)?.slice(0, 300)}`);
                 consecutiveParseFailures++;
                 if (consecutiveParseFailures >= MAX_PARSE_FAILURES) {
-                    return this.buildForcedResult(startTime, "Failed to parse LLM response after multiple attempts.");
+                    return this.buildForcedResult(startTime, "Failed to parse LLM response after multiple attempts.", "parse_failure");
                 }
                 this.contextManager.addEntry("assistant", completion.content !== "(empty response)" ? completion.content : "I need to use a tool to proceed.");
                 this.contextManager.addEntry("user", "You MUST call a tool. Use read_file to read code, or done to return your answer.");
@@ -101,6 +121,9 @@ export class Planner {
                     tokensUsed: this.totalTokensUsed,
                     iterationCount: this.iterationCount + 1,
                     elapsedMs: Date.now() - startTime,
+                    ...(this.config.autoMode && {
+                        effectiveMaxIterations: this.effectiveMaxIterations,
+                    }),
                 };
             }
 
@@ -117,9 +140,38 @@ export class Planner {
 
             const result = await toolDef.execute(args, this.config.workingDir);
 
+            // L1: Capture plan tool output to set dynamic iteration budget
+            if (tool === "plan" && this.config.autoMode && !this.planReceived) {
+                this.planReceived = true;
+                try {
+                    const planData = JSON.parse(result.output) as {estimated_steps?: number; plan?: string};
+                    const estimated = Math.max(1, planData.estimated_steps ?? 10);
+                    const hardCap = this.config.maxIterations;
+                    this.effectiveMaxIterations = Math.min(Math.ceil(estimated * 1.5), hardCap);
+                } catch { /* keep current effectiveMax */ }
+            }
+
             // Track files read
             if (tool === "read_file" && args.path) {
                 this.filesRead.add(String(args.path));
+            }
+
+            // L2: Repetition detection (skip plan and done tools)
+            if (tool !== "plan" && tool !== "done") {
+                this.contextManager.trackToolCall(tool, JSON.stringify(args));
+                if (this.contextManager.detectRepetition()) {
+                    this.redirectCount++;
+                    if (this.redirectCount >= MAX_REDIRECTS) {
+                        return this.buildForcedResult(startTime, "Agent stuck in repetition loop.", "repetition");
+                    }
+                    this.contextManager.addEntry(
+                        "user",
+                        "You've repeated the same action multiple times with identical arguments. " +
+                        "This suggests you're stuck. Try a different approach, read a different file, " +
+                        "or call done with your current findings.",
+                        true,
+                    );
+                }
             }
 
             // Add assistant tool_call + tool result to context (OpenAI function calling protocol)
@@ -137,7 +189,7 @@ export class Planner {
         }
 
         // Max iterations reached
-        return this.buildForcedResult(startTime, "Maximum iterations reached.");
+        return this.buildForcedResult(startTime, "Maximum iterations reached.", "iteration_limit");
     }
 
     /** Cancel the running loop. */
@@ -150,7 +202,13 @@ export class Planner {
     // ============================================================
 
     private buildSystemPrompt(): string {
-        return "You are a code analysis agent. Read-only. You MUST read files with tools before answering. NEVER answer from memory. Use read_file, list_dir, or search_pattern to gather information, then call done with your findings.";
+        const base = "You are a code analysis agent. Read-only. You MUST read files with tools before answering. NEVER answer from memory. Use read_file, list_dir, or search_pattern to gather information, then call done with your findings.";
+        if (this.config.autoMode) {
+            return base + "\n\nIMPORTANT: You MUST call the 'plan' tool FIRST before any other tool. " +
+                "Estimate how many tool calls you'll need and describe your approach. " +
+                "After planning, proceed with your analysis.";
+        }
+        return base;
     }
 
     /** Add an assistant message with a tool_call to context. */
@@ -176,7 +234,7 @@ export class Planner {
         this.contextManager.applySummarization(result.content);
     }
 
-    private buildForcedResult(startTime: number, reason: string): AgentResult {
+    private buildForcedResult(startTime: number, reason: string, terminationReason?: string): AgentResult {
         return {
             summary: reason,
             answer: `Agent stopped: ${reason} Completed ${this.iterationCount} iterations.`,
@@ -184,6 +242,10 @@ export class Planner {
             tokensUsed: this.totalTokensUsed,
             iterationCount: this.iterationCount,
             elapsedMs: Date.now() - startTime,
+            ...(this.config.autoMode && {
+                effectiveMaxIterations: this.effectiveMaxIterations,
+                terminationReason: terminationReason ?? "iteration_limit",
+            }),
         };
     }
 }
