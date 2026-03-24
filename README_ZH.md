@@ -20,6 +20,8 @@ Claude Versatile 让 Claude Code 作为主控编排器，通过 MCP（Model Cont
 - **Layer 1：轻量 API 调用**：单次任务（代码审查、搜索、生成），通过 MCP Server 封装 API 调用
 - **Layer 2：Agent 委派**：自主只读 Agent，在独立子进程中运行 ReAct 推理循环，适用于复杂的多步骤代码分析
 
+> 详细文档请访问 [Wiki](https://github.com/Caishangqi/EnigmaClaudeVersatile/wiki)：[架构设计](https://github.com/Caishangqi/EnigmaClaudeVersatile/wiki/Architecture) | [快速开始](https://github.com/Caishangqi/EnigmaClaudeVersatile/wiki/Getting-Started) | [配置系统](https://github.com/Caishangqi/EnigmaClaudeVersatile/wiki/Configuration) | [Provider 开发指南](https://github.com/Caishangqi/EnigmaClaudeVersatile/wiki/Provider-Development-Guide)
+
 ## MCP 服务器
 
 ### claude-versatile-codex

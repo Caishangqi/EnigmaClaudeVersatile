@@ -21,6 +21,9 @@ CLAUDE.md
 # MCP config (local paths)
 .mcp.json
 
+# Wiki (local drafts, pushed to wiki repo separately)
+wiki/
+
 # Spec workflow
 .spec-workflow/
 

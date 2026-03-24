@@ -20,6 +20,8 @@ The system is split into two layers:
 - **Layer 1: Direct API calls**: lightweight, single-shot tasks (code review, search, generation) routed through MCP Server wrappers
 - **Layer 2: Agent delegation**: an autonomous read-only Agent with its own ReAct reasoning loop, running in a separate process for complex multi-step analysis
 
+> For detailed documentation, visit the [Wiki](https://github.com/Caishangqi/EnigmaClaudeVersatile/wiki): [Architecture](https://github.com/Caishangqi/EnigmaClaudeVersatile/wiki/Architecture) | [Getting Started](https://github.com/Caishangqi/EnigmaClaudeVersatile/wiki/Getting-Started) | [Configuration](https://github.com/Caishangqi/EnigmaClaudeVersatile/wiki/Configuration) | [Provider Development Guide](https://github.com/Caishangqi/EnigmaClaudeVersatile/wiki/Provider-Development-Guide)
+
 ## MCP Servers
 
 ### claude-versatile-codex
