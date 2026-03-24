@@ -24,6 +24,9 @@ CLAUDE.md
 # Wiki (local drafts, pushed to wiki repo separately)
 wiki/
 
+# Reference projects (cloned for study, not part of this repo)
+reference/
+
 # Spec workflow
 .spec-workflow/
 
