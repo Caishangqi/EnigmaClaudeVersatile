@@ -1,0 +1,27 @@
+{
+  "name": "claude-versatile",
+  "version": "0.1.0",
+  "description": "Claude Code orchestrator with external AI model delegation via MCP",
+  "type": "module",
+  "bin": {
+    "claude-versatile": "./dist/cli/init.js"
+  },
+  "files": [
+    "dist/",
+    "skills/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "openai": "^4.104.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

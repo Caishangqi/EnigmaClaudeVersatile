@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Config with secrets
+.versatile/
+.env
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# IDE
+.idea/
+.run/
+*.swp
+
+# MCP config (local paths)
+.mcp.json
+
+# Spec workflow
+.spec-workflow/
+
+# Example inputs (symlinked external projects)
+example-inputs/
+
+# OS
+Thumbs.db
+.DS_Store
