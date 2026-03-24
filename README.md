@@ -1,4 +1,4 @@
-<p align="center"><img src="https://github.com/user-attachments/assets/12663581-fb81-4364-96d6-36e57d6cfd4f" alt="Logo" width="300"></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/c03cbcf8-100d-4549-a7c1-9da20ea9dfd8" alt="Logo" width="300"></p>
 
 <h1 align="center"> Claude Versatile </h1>
 <h4 align="center">Claude Code orchestrator with external AI model delegation via MCP</h4>
