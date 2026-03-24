@@ -180,7 +180,7 @@ Missing files are auto-generated from templates on first run. Placeholder API ke
 ```
 ClaudeVersatile/
   packages/
-    lib/                    Shared library (client, completion, errors, config, bootstrap)
+    lib/                    Shared library (client, completion, errors, config, bootstrap, provider)
     codex/                  Codex MCP Server (claude-versatile-codex)
     grok/                   Grok MCP Server (claude-versatile-grok)
     agent/                  Agent MCP Server (claude-versatile-agent) + Agent core
@@ -213,6 +213,9 @@ Claude Versatile follows a "Claude stays in control" principle:
 - MCP servers self-read configuration from `.versatile/`, no env var injection needed
 - The Agent runs in a child process: crashes don't affect the MCP server
 - Tool invocation uses OpenAI function calling (`tool_calls`), not hand-written XML/JSON
+- **Provider lifecycle framework**: `defineProvider()` lets third-party developers create new MCP servers with minimal boilerplate (~25 lines for OpenAI-compatible, ~35 lines for native SDK)
+- **Data-driven model routing**: Agent uses a route table (`MODEL_ROUTES`) to resolve model prefixes to API credentials. Adding a new model requires one line in the route table
+- **Planner decoupled from SDK**: Agent's Planner depends on the `CompletionProvider` interface, not a specific SDK. Future non-OpenAI adapters (Gemini, etc.) plug in without changing Planner
 
 <p align="center">
 <a href="https://github.com/Caishangqi/EnigmaEngine/issues">

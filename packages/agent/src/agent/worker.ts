@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
 import OpenAI from "openai";
+import {OpenAICompletionProvider} from "@claude-versatile/lib/completion.js";
+import {resolveModelRoute} from "@claude-versatile/lib/config.js";
+import type {CompletionProvider} from "@claude-versatile/lib/types.js";
 import {Planner} from "./planner.js";
 import type {ParentToWorkerMessage, WorkerToParentMessage, AgentConfig} from "./types.js";
 
@@ -31,9 +34,9 @@ process.on("message", (msg: ParentToWorkerMessage) => {
 
 async function runAgent(config: AgentConfig): Promise<void> {
     try {
-        const client = createClientFromEnv(config.env, config.model);
+        const provider = createProviderFromEnv(config.env, config.model);
 
-        currentPlanner = new Planner(client, config, {
+        currentPlanner = new Planner(provider, config, {
             onIteration: (step, iteration, filesRead, tokensUsed) => {
                 send({type: "status", currentStep: step, iterationCount: iteration, filesRead, tokensUsed});
             },
@@ -50,23 +53,26 @@ async function runAgent(config: AgentConfig): Promise<void> {
 }
 
 // ============================================================
-// Multi-Model Client Routing
+// Multi-Model Provider Routing (data-driven)
 // ============================================================
 
 /**
- * Create an OpenAI client based on model name prefix.
- * - grok-* → GROK_API_KEY + GROK_BASE_URL
- * - * (default) → OPENAI_API_KEY + OPENAI_BASE_URL
+ * Create a CompletionProvider based on model name prefix.
+ * Uses MODEL_ROUTES from config to resolve the correct API key and base URL.
+ *
+ * Currently all routes produce OpenAICompletionProvider (OpenAI-compatible APIs).
+ * Future non-OpenAI providers (Gemini, etc.) can return a different CompletionProvider
+ * implementation here without changing Planner.
  */
-function createClientFromEnv(env: Record<string, string>, model: string): OpenAI {
-    const isGrok = model.startsWith("grok");
-    const apiKey = isGrok ? env.GROK_API_KEY : env.OPENAI_API_KEY;
-    const baseURL = isGrok ? env.GROK_BASE_URL : env.OPENAI_BASE_URL;
+function createProviderFromEnv(env: Record<string, string>, model: string): CompletionProvider {
+    const route = resolveModelRoute(model);
+    const apiKey = env[route.apiKeyEnv];
 
     if (!apiKey) {
-        const keyName = isGrok ? "GROK_API_KEY" : "OPENAI_API_KEY";
-        throw new Error(`${keyName} is not set for model: ${model}`);
+        throw new Error(`${route.apiKeyEnv} is not set for model: ${model}`);
     }
 
-    return new OpenAI({apiKey, ...(baseURL && {baseURL}), maxRetries: 3});
+    const baseURL = env[route.baseUrlEnv];
+    const client = new OpenAI({apiKey, ...(baseURL && {baseURL}), maxRetries: 3});
+    return new OpenAICompletionProvider(client);
 }

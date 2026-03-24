@@ -68,6 +68,45 @@ export const TEMPLATES: Record<string, unknown> = {
 export const PLACEHOLDER_KEY = "YOUR_API_KEY_HERE";
 
 // ============================================================
+// Agent Model Route Table
+// ============================================================
+
+/**
+ * Maps model name prefixes to their config file and env var names.
+ * Used by Agent's collectEnv() and Worker's createClientFromEnv().
+ *
+ * Matching order: first match wins (longest prefix should come first if ambiguous).
+ * The "default" entry (empty prefix) is the fallback for unmatched models.
+ */
+export interface ModelRoute {
+    /** Model name prefix to match (e.g. "grok"). Empty string = default fallback. */
+    prefix: string;
+    /** Config filename in .versatile/ (e.g. "grok.agent.json"). */
+    configFile: string;
+    /** Env var name for API key (e.g. "GROK_API_KEY"). */
+    apiKeyEnv: string;
+    /** Env var name for base URL (e.g. "GROK_BASE_URL"). */
+    baseUrlEnv: string;
+}
+
+export const MODEL_ROUTES: ModelRoute[] = [
+    {prefix: "grok",     configFile: "grok.agent.json",  apiKeyEnv: "GROK_API_KEY",    baseUrlEnv: "GROK_BASE_URL"},
+    // Add new providers here:
+    // {prefix: "deepseek", configFile: "deepseek.agent.json", apiKeyEnv: "DEEPSEEK_API_KEY", baseUrlEnv: "DEEPSEEK_BASE_URL"},
+    // Default fallback (OpenAI) — must be last
+    {prefix: "",         configFile: "codex.agent.json", apiKeyEnv: "OPENAI_API_KEY",  baseUrlEnv: "OPENAI_BASE_URL"},
+];
+
+/** Find the matching route for a model name. Returns the default route if no prefix matches. */
+export function resolveModelRoute(model: string): ModelRoute {
+    for (const route of MODEL_ROUTES) {
+        if (route.prefix && model.startsWith(route.prefix)) return route;
+    }
+    // Return default (last entry with empty prefix)
+    return MODEL_ROUTES[MODEL_ROUTES.length - 1];
+}
+
+// ============================================================
 // Config Loader
 // ============================================================
 

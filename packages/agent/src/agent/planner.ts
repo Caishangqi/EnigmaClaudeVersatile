@@ -1,6 +1,5 @@
-import type OpenAI from "openai";
 import type {AgentConfig, AgentResult, AgentToolName, PlannerDecision, PlannerAction} from "./types.js";
-import {executeCompletion} from "@claude-versatile/lib/completion.js";
+import type {CompletionProvider, CompletionRequest} from "@claude-versatile/lib/types.js";
 import {ContextManager} from "./context-manager.js";
 import {getToolDefs} from "./tools.js";
 
@@ -13,22 +12,23 @@ export interface PlannerCallbacks {
 
 /**
  * ReAct loop planner. Drives the Agent's think-act-observe cycle
- * using OpenAI function calling for reliable tool invocation.
+ * using function calling for reliable tool invocation.
+ * Accepts any CompletionProvider — decoupled from specific LLM SDKs.
  */
 export class Planner {
-    private client: OpenAI;
+    private provider: CompletionProvider;
     private config: AgentConfig;
     private callbacks: PlannerCallbacks;
     private contextManager: ContextManager;
     private tools: Map<AgentToolName, import("./types.js").AgentToolDef>;
-    private openaiTools: OpenAI.ChatCompletionTool[];
+    private openaiTools: Array<{type: "function"; function: {name: string; description: string; parameters: Record<string, unknown>}}>;
     private abortController = new AbortController();
     private filesRead = new Set<string>();
     private totalTokensUsed = 0;
     private iterationCount = 0;
 
-    constructor(client: OpenAI, config: AgentConfig, callbacks: PlannerCallbacks) {
-        this.client = client;
+    constructor(provider: CompletionProvider, config: AgentConfig, callbacks: PlannerCallbacks) {
+        this.provider = provider;
         this.config = config;
         this.callbacks = callbacks;
         this.contextManager = new ContextManager();
@@ -67,12 +67,13 @@ export class Planner {
             }
 
             // Call LLM with function calling
-            const completion = await executeCompletion(this.client, {
+            const completion = await this.provider.complete({
                 model: this.config.model,
                 messages: this.contextManager.getMessages(),
                 signal: this.abortController.signal,
+                timeoutMs: this.config.singleCallTimeout,
                 extra: { tools: this.openaiTools },
-            }, this.config.singleCallTimeout);
+            });
 
             this.totalTokensUsed += completion.usage?.totalTokens ?? 0;
 
@@ -161,14 +162,15 @@ export class Planner {
         const content = this.contextManager.getCompressibleContent();
         if (!content) return;
 
-        const result = await executeCompletion(this.client, {
+        const result = await this.provider.complete({
             model: this.config.model,
             messages: [
                 {role: "system", content: "Summarize the following agent interaction history concisely. Preserve key findings, file paths, and important code snippets."},
                 {role: "user", content},
             ],
             signal: this.abortController.signal,
-        }, SUMMARIZE_TIMEOUT);
+            timeoutMs: SUMMARIZE_TIMEOUT,
+        });
 
         this.totalTokensUsed += result.usage?.totalTokens ?? 0;
         this.contextManager.applySummarization(result.content);
@@ -191,8 +193,8 @@ export class Planner {
 // ============================================================
 
 /** Convert Agent tool defs to OpenAI function calling format. */
-function buildOpenAITools(tools: Map<AgentToolName, import("./types.js").AgentToolDef>): OpenAI.ChatCompletionTool[] {
-    const result: OpenAI.ChatCompletionTool[] = [];
+function buildOpenAITools(tools: Map<AgentToolName, import("./types.js").AgentToolDef>): Array<{type: "function"; function: {name: string; description: string; parameters: Record<string, unknown>}}> {
+    const result: Array<{type: "function"; function: {name: string; description: string; parameters: Record<string, unknown>}}> = [];
     for (const def of tools.values()) {
         const properties: Record<string, unknown> = {};
         const required: string[] = [];

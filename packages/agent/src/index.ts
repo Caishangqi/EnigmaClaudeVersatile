@@ -7,7 +7,7 @@ import path from "node:path";
 import {createServer, startServer, runServer} from "@claude-versatile/lib/bootstrap.js";
 import {formatTokens, formatDuration} from "@claude-versatile/lib/completion.js";
 import {TaskStore} from "./agent/task-store.js";
-import {loadConfig, configValue, type BaseProviderConfig, type AgentBehaviorConfig} from "@claude-versatile/lib/config.js";
+import {loadConfig, configValue, type BaseProviderConfig, type AgentBehaviorConfig, MODEL_ROUTES} from "@claude-versatile/lib/config.js";
 import type {ParentToWorkerMessage, WorkerToParentMessage, AgentResult, TaskState} from "./agent/types.js";
 
 const store = new TaskStore();
@@ -18,27 +18,26 @@ const WORKER_PATH = path.resolve(__dirname, "./agent/worker.js");
 
 // Load configs
 const agentCfg = loadConfig<AgentBehaviorConfig>("agent.json");
-const codexCfg = loadConfig<BaseProviderConfig>("codex.agent.json");
-const grokCfg = loadConfig<BaseProviderConfig>("grok.agent.json");
 
 const DEFAULT_MODEL = configValue(agentCfg.defaultModel, "AGENT_DEFAULT_MODEL", "gpt-4o");
 const DEFAULT_MAX_ITERATIONS = configValue(agentCfg.maxIterations, "AGENT_MAX_ITERATIONS", 20);
 const DEFAULT_MAX_TIME_MS = configValue(agentCfg.maxTimeMs, "AGENT_MAX_TIME_MS", 300_000);
 const SINGLE_CALL_TIMEOUT = configValue(agentCfg.singleCallTimeout, "AGENT_SINGLE_CALL_TIMEOUT", 120_000);
 
-/** Collect API keys from config files + env to pass to Worker. */
+/** Collect API keys from all provider config files + env to pass to Worker. */
 function collectEnv(): Record<string, string> {
     const env: Record<string, string> = {};
-    // OpenAI/Codex
-    const openaiKey = codexCfg.apiKey || process.env.OPENAI_API_KEY;
-    const openaiUrl = codexCfg.baseUrl || process.env.OPENAI_BASE_URL;
-    if (openaiKey) env.OPENAI_API_KEY = openaiKey;
-    if (openaiUrl) env.OPENAI_BASE_URL = openaiUrl;
-    // Grok
-    const grokKey = grokCfg.apiKey || process.env.GROK_API_KEY;
-    const grokUrl = grokCfg.baseUrl || process.env.GROK_BASE_URL;
-    if (grokKey) env.GROK_API_KEY = grokKey;
-    if (grokUrl) env.GROK_BASE_URL = grokUrl;
+    // Deduplicate config files (multiple routes may share the same file)
+    const seen = new Set<string>();
+    for (const route of MODEL_ROUTES) {
+        if (seen.has(route.configFile)) continue;
+        seen.add(route.configFile);
+        const cfg = loadConfig<BaseProviderConfig>(route.configFile);
+        const key = cfg.apiKey || process.env[route.apiKeyEnv];
+        const url = cfg.baseUrl || process.env[route.baseUrlEnv];
+        if (key) env[route.apiKeyEnv] = key;
+        if (url) env[route.baseUrlEnv] = url;
+    }
     return env;
 }
 

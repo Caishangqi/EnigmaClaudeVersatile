@@ -180,7 +180,7 @@ npx claude-versatile init
 ```
 ClaudeVersatile/
   packages/
-    lib/                    共享库（client, completion, errors, config, bootstrap）
+    lib/                    共享库（client, completion, errors, config, bootstrap, provider）
     codex/                  Codex MCP Server（claude-versatile-codex）
     grok/                   Grok MCP Server（claude-versatile-grok）
     agent/                  Agent MCP Server（claude-versatile-agent）+ Agent 核心
@@ -213,6 +213,9 @@ Claude Versatile 遵循"Claude 保持主控"原则：
 - MCP Server 自读 `.versatile/` 配置，无需环境变量注入
 - Agent 在子进程中运行：崩溃不影响 MCP Server
 - 工具调用使用 OpenAI function calling（`tool_calls`），而非手写 XML/JSON
+- **Provider 生命周期框架**：`defineProvider()` 让第三方开发者用最少代码创建新 MCP Server（OpenAI 兼容 ~25 行，Native SDK ~35 行）
+- **数据驱动的模型路由**：Agent 使用路由表（`MODEL_ROUTES`）将模型前缀解析为 API 凭证。添加新模型只需在路由表加一行
+- **Planner 与 SDK 解耦**：Agent 的 Planner 依赖 `CompletionProvider` 接口而非特定 SDK。未来非 OpenAI 适配器（Gemini 等）可直接插入，无需修改 Planner
 
 
 <p align="center">
