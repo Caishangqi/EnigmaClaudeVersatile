@@ -21,6 +21,12 @@ export interface GrokProviderConfig {
     maxRetries: number;
 }
 
+export interface TavilyProviderConfig {
+    apiKey: string;
+    maxResults: number;
+    searchDepth: string;
+}
+
 export interface AgentBehaviorConfig {
     defaultModel: string;
     maxIterations: number;
@@ -46,6 +52,11 @@ export const TEMPLATES: Record<string, unknown> = {
         defaultModel: "grok-4",
         timeout: 60000,
         maxRetries: 3,
+    },
+    "tavily.agent.json": {
+        apiKey: "YOUR_API_KEY_HERE",
+        maxResults: 10,
+        searchDepth: "advanced",
     },
     "agent.json": {
         defaultModel: "gpt-4o",

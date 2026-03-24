@@ -11,7 +11,8 @@
     "claude-versatile": "./dist/cli/init.js",
     "claude-versatile-codex": "./dist/mcp-servers/codex/index.js",
     "claude-versatile-grok": "./dist/mcp-servers/grok/index.js",
-    "claude-versatile-agent": "./dist/mcp-servers/agent/index.js"
+    "claude-versatile-agent": "./dist/mcp-servers/agent/index.js",
+    "claude-versatile-tavily": "./dist/mcp-servers/tavily/index.js"
   },
   "files": [
     "dist/",
@@ -24,6 +25,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
+    "@tavily/core": "^0.6.0",
     "openai": "^4.104.0",
     "zod": "^3.24.0"
   },
