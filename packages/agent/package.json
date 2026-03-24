@@ -1,12 +1,14 @@
 {
   "name": "claude-versatile-agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Claude Versatile autonomous read-only Agent MCP Server",
   "type": "module",
   "bin": {
     "claude-versatile-agent": "./dist/index.js"
   },
-  "files": ["dist/"],
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "build": "tsc"
   },

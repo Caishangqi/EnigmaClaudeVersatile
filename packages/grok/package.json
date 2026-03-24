@@ -1,12 +1,14 @@
 {
   "name": "claude-versatile-grok",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Claude Versatile MCP Server for Grok web search via xAI API",
   "type": "module",
   "bin": {
     "claude-versatile-grok": "./dist/index.js"
   },
-  "files": ["dist/"],
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "build": "tsc"
   },

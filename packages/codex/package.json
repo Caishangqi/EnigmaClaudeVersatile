@@ -1,12 +1,14 @@
 {
   "name": "claude-versatile-codex",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Claude Versatile MCP Server for OpenAI-compatible APIs (Codex)",
   "type": "module",
   "bin": {
     "claude-versatile-codex": "./dist/index.js"
   },
-  "files": ["dist/"],
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "build": "tsc"
   },
