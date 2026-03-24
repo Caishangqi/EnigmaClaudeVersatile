@@ -73,20 +73,20 @@ Register MCP Servers in `.mcp.json`:
   "mcpServers": {
     "codex": {
       "type": "stdio",
-      "command": "claude-versatile-codex",
-      "args": [],
+      "command": "npx",
+      "args": ["-y", "claude-versatile-codex@latest"],
       "env": {}
     },
     "grok": {
       "type": "stdio",
-      "command": "claude-versatile-grok",
-      "args": [],
+      "command": "npx",
+      "args": ["-y", "claude-versatile-grok@latest"],
       "env": {}
     },
     "agent": {
       "type": "stdio",
-      "command": "claude-versatile-agent",
-      "args": [],
+      "command": "npx",
+      "args": ["-y", "claude-versatile-agent@latest"],
       "env": {}
     }
   }
@@ -110,19 +110,19 @@ Then register MCP Servers using local paths in `.mcp.json`:
     "codex": {
       "type": "stdio",
       "command": "node",
-      "args": ["<path-to-repo>/dist/mcp-servers/codex/index.js"],
+      "args": ["<path-to-repo>/packages/codex/dist/index.js"],
       "env": {}
     },
     "grok": {
       "type": "stdio",
       "command": "node",
-      "args": ["<path-to-repo>/dist/mcp-servers/grok/index.js"],
+      "args": ["<path-to-repo>/packages/grok/dist/index.js"],
       "env": {}
     },
     "agent": {
       "type": "stdio",
       "command": "node",
-      "args": ["<path-to-repo>/dist/mcp-servers/agent/index.js"],
+      "args": ["<path-to-repo>/packages/agent/dist/index.js"],
       "env": {}
     }
   }
@@ -177,19 +177,14 @@ Missing files are auto-generated from templates on first run. Placeholder API ke
 
 ```
 ClaudeVersatile/
-  .claude/skills/           Skill definitions (codex-task, grok-search)
-  .versatile/               Config files (gitignored)
-  skills/                   Skill files for npm distribution
-  src/
+  packages/
     lib/                    Shared library (client, completion, errors, config, bootstrap)
-    agent/                  Agent core (worker, planner, tools, context-manager, task-store)
-    mcp-servers/
-      codex/index.ts        Codex MCP Server
-      grok/index.ts         Grok MCP Server
-      agent/index.ts        Agent MCP Server
-    cli/
-      init.ts               CLI init command
-  dist/                     Compiled output (gitignored)
+    codex/                  Codex MCP Server (claude-versatile-codex)
+    grok/                   Grok MCP Server (claude-versatile-grok)
+    agent/                  Agent MCP Server (claude-versatile-agent) + Agent core
+    cli/                    CLI init command (claude-versatile)
+  skills/                   Skill files for npm distribution
+  tests/                    Unit tests
 ```
 
 ## Tech Stack

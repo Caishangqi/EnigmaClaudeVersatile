@@ -73,20 +73,20 @@ claude-versatile init
   "mcpServers": {
     "codex": {
       "type": "stdio",
-      "command": "claude-versatile-codex",
-      "args": [],
+      "command": "npx",
+      "args": ["-y", "claude-versatile-codex@latest"],
       "env": {}
     },
     "grok": {
       "type": "stdio",
-      "command": "claude-versatile-grok",
-      "args": [],
+      "command": "npx",
+      "args": ["-y", "claude-versatile-grok@latest"],
       "env": {}
     },
     "agent": {
       "type": "stdio",
-      "command": "claude-versatile-agent",
-      "args": [],
+      "command": "npx",
+      "args": ["-y", "claude-versatile-agent@latest"],
       "env": {}
     }
   }
@@ -110,19 +110,19 @@ npm run build
     "codex": {
       "type": "stdio",
       "command": "node",
-      "args": ["<path-to-repo>/dist/mcp-servers/codex/index.js"],
+      "args": ["<path-to-repo>/packages/codex/dist/index.js"],
       "env": {}
     },
     "grok": {
       "type": "stdio",
       "command": "node",
-      "args": ["<path-to-repo>/dist/mcp-servers/grok/index.js"],
+      "args": ["<path-to-repo>/packages/grok/dist/index.js"],
       "env": {}
     },
     "agent": {
       "type": "stdio",
       "command": "node",
-      "args": ["<path-to-repo>/dist/mcp-servers/agent/index.js"],
+      "args": ["<path-to-repo>/packages/agent/dist/index.js"],
       "env": {}
     }
   }
@@ -177,19 +177,14 @@ npx claude-versatile init
 
 ```
 ClaudeVersatile/
-  .claude/skills/           Skill 定义（codex-task, grok-search）
-  .versatile/               配置文件（gitignored）
-  skills/                   npm 分发用 Skill 文件
-  src/
+  packages/
     lib/                    共享库（client, completion, errors, config, bootstrap）
-    agent/                  Agent 核心（worker, planner, tools, context-manager, task-store）
-    mcp-servers/
-      codex/index.ts        Codex MCP Server
-      grok/index.ts         Grok MCP Server
-      agent/index.ts        Agent MCP Server
-    cli/
-      init.ts               CLI init 命令
-  dist/                     编译输出（gitignored）
+    codex/                  Codex MCP Server（claude-versatile-codex）
+    grok/                   Grok MCP Server（claude-versatile-grok）
+    agent/                  Agent MCP Server（claude-versatile-agent）+ Agent 核心
+    cli/                    CLI init 命令（claude-versatile）
+  skills/                   npm 分发用 Skill 文件
+  tests/                    单元测试
 ```
 
 ## 技术栈
