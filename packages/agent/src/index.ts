@@ -7,7 +7,7 @@ import path from "node:path";
 import {createServer, startServer, runServer} from "@claude-versatile/lib/bootstrap.js";
 import {formatTokens, formatDuration} from "@claude-versatile/lib/completion.js";
 import {TaskStore} from "./agent/task-store.js";
-import {loadConfig, configValue, type CodexProviderConfig, type GrokProviderConfig, type AgentBehaviorConfig} from "@claude-versatile/lib/config.js";
+import {loadConfig, configValue, type BaseProviderConfig, type AgentBehaviorConfig} from "@claude-versatile/lib/config.js";
 import type {ParentToWorkerMessage, WorkerToParentMessage, AgentResult, TaskState} from "./agent/types.js";
 
 const store = new TaskStore();
@@ -18,8 +18,8 @@ const WORKER_PATH = path.resolve(__dirname, "./agent/worker.js");
 
 // Load configs
 const agentCfg = loadConfig<AgentBehaviorConfig>("agent.json");
-const codexCfg = loadConfig<CodexProviderConfig>("codex.agent.json");
-const grokCfg = loadConfig<GrokProviderConfig>("grok.agent.json");
+const codexCfg = loadConfig<BaseProviderConfig>("codex.agent.json");
+const grokCfg = loadConfig<BaseProviderConfig>("grok.agent.json");
 
 const DEFAULT_MODEL = configValue(agentCfg.defaultModel, "AGENT_DEFAULT_MODEL", "gpt-4o");
 const DEFAULT_MAX_ITERATIONS = configValue(agentCfg.maxIterations, "AGENT_MAX_ITERATIONS", 20);

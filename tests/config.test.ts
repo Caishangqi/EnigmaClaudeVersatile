@@ -1,5 +1,6 @@
 import {describe, it, expect, beforeEach, afterEach} from "vitest";
 import {configValue, configRequired, TEMPLATES, PLACEHOLDER_KEY} from "../packages/lib/src/config.js";
+import type {BaseProviderConfig, CodexProviderConfig, GrokProviderConfig} from "../packages/lib/src/config.js";
 
 // ============================================================
 // configValue
@@ -95,5 +96,42 @@ describe("TEMPLATES", () => {
         expect(t.maxIterations).toBeTypeOf("number");
         expect(t.maxTimeMs).toBeTypeOf("number");
         expect(t.singleCallTimeout).toBeTypeOf("number");
+    });
+});
+
+// ============================================================
+// BaseProviderConfig inheritance
+// ============================================================
+
+describe("BaseProviderConfig", () => {
+    it("CodexProviderConfig extends BaseProviderConfig", () => {
+        // Type-level check: CodexProviderConfig is assignable to BaseProviderConfig
+        const codex: CodexProviderConfig = {
+            apiKey: "key", baseUrl: "url", defaultModel: "gpt-4o", timeout: 60000, maxRetries: 3,
+        };
+        const base: BaseProviderConfig = codex;
+        expect(base.apiKey).toBe("key");
+    });
+
+    it("GrokProviderConfig extends BaseProviderConfig", () => {
+        const grok: GrokProviderConfig = {
+            apiKey: "key", baseUrl: "url", defaultModel: "grok-4", timeout: 60000, maxRetries: 3,
+        };
+        const base: BaseProviderConfig = grok;
+        expect(base.defaultModel).toBe("grok-4");
+    });
+
+    it("custom provider can extend BaseProviderConfig with extra fields", () => {
+        interface TavilyProviderConfig extends BaseProviderConfig {
+            maxResults?: number;
+            searchDepth?: string;
+        }
+        const tavily: TavilyProviderConfig = {
+            apiKey: "key", baseUrl: "url", defaultModel: "tavily", timeout: 30000, maxRetries: 2,
+            maxResults: 10, searchDepth: "advanced",
+        };
+        const base: BaseProviderConfig = tavily;
+        expect(base.apiKey).toBe("key");
+        expect(tavily.maxResults).toBe(10);
     });
 });

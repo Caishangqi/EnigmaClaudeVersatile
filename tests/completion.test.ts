@@ -1,6 +1,6 @@
 import {describe, it, expect} from "vitest";
-import {formatTokens, formatDuration, formatUsageLine} from "../packages/lib/src/completion.js";
-import type {CompletionResult} from "../packages/lib/src/types.js";
+import {formatTokens, formatDuration, formatUsageLine, OpenAICompletionProvider} from "../packages/lib/src/completion.js";
+import type {CompletionResult, CompletionProvider} from "../packages/lib/src/types.js";
 
 // ============================================================
 // formatTokens
@@ -67,5 +67,44 @@ describe("formatUsageLine", () => {
             usage: {promptTokens: 10, completionTokens: 5, totalTokens: 15},
         };
         expect(formatUsageLine(result)).toMatch(/^\n\n/);
+    });
+});
+
+// ============================================================
+// OpenAICompletionProvider
+// ============================================================
+
+describe("OpenAICompletionProvider", () => {
+    it("implements CompletionProvider interface", () => {
+        // Type-level check: OpenAICompletionProvider satisfies CompletionProvider
+        const mockClient = {} as any;
+        const provider: CompletionProvider = new OpenAICompletionProvider(mockClient);
+        expect(typeof provider.complete).toBe("function");
+    });
+});
+
+// ============================================================
+// Custom CompletionProvider implementation
+// ============================================================
+
+describe("Custom CompletionProvider", () => {
+    it("can implement CompletionProvider interface for custom providers", async () => {
+        const customProvider: CompletionProvider = {
+            async complete(request) {
+                return {
+                    content: `Echo: ${request.messages[0]?.content}`,
+                    model: request.model,
+                    usage: {promptTokens: 10, completionTokens: 5, totalTokens: 15},
+                };
+            },
+        };
+
+        const result = await customProvider.complete({
+            model: "tavily-search",
+            messages: [{role: "user", content: "test query"}],
+        });
+        expect(result.content).toBe("Echo: test query");
+        expect(result.model).toBe("tavily-search");
+        expect(result.usage?.totalTokens).toBe(15);
     });
 });

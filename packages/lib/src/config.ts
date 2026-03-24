@@ -5,22 +5,32 @@ import path from "node:path";
 // Config Interfaces
 // ============================================================
 
-export interface CodexProviderConfig {
+/**
+ * Base configuration shared by all API providers.
+ * Extend this interface to add provider-specific fields.
+ */
+export interface BaseProviderConfig {
+    /** API key for authentication */
     apiKey: string;
+    /** Base URL for the API endpoint */
     baseUrl: string;
+    /** Default model identifier */
     defaultModel: string;
+    /** Request timeout in milliseconds */
     timeout: number;
+    /** Max retries for transient errors */
     maxRetries: number;
 }
 
-export interface GrokProviderConfig {
-    apiKey: string;
-    baseUrl: string;
-    defaultModel: string;
-    timeout: number;
-    maxRetries: number;
-}
+/** OpenAI / Codex provider configuration */
+export interface CodexProviderConfig extends BaseProviderConfig {}
 
+/** Grok / xAI provider configuration */
+export interface GrokProviderConfig extends BaseProviderConfig {}
+
+/**
+ * Agent behavior configuration (not an API provider).
+ */
 export interface AgentBehaviorConfig {
     defaultModel: string;
     maxIterations: number;

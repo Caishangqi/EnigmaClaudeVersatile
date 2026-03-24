@@ -69,3 +69,31 @@ export interface ServerConfig {
     name: string;
     version: string;
 }
+
+// ============================================================
+// Provider Interfaces — for custom provider implementations
+// ============================================================
+
+/**
+ * Unified completion provider interface.
+ * Implement this to add a new LLM provider (OpenAI-compatible or native SDK).
+ *
+ * Built-in implementation: OpenAICompletionProvider (covers OpenAI, Grok, DeepSeek, etc.)
+ * Custom providers (Gemini, Tavily, etc.) implement this interface directly.
+ */
+export interface CompletionProvider {
+    /** Execute a completion request and return a normalized result. */
+    complete(request: CompletionRequest): Promise<CompletionResult>;
+}
+
+/**
+ * Unified error mapper interface.
+ * Maps provider-specific errors into MCP ToolResponse format.
+ *
+ * Built-in implementation: OpenAIErrorMapper (handles OpenAI SDK errors).
+ * Custom providers can implement their own error mapping logic.
+ */
+export interface ErrorMapper {
+    /** Map an error to an MCP-compatible error response. */
+    mapError(error: unknown, ctx: ErrorContext): ToolResponse;
+}

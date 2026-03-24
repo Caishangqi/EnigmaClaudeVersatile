@@ -1,33 +1,66 @@
 import type OpenAI from "openai";
-import type {CompletionRequest, CompletionResult} from "./types.js";
+import type {CompletionRequest, CompletionResult, CompletionProvider} from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 
+// ============================================================
+// OpenAICompletionProvider — implements CompletionProvider
+// ============================================================
+
+/**
+ * CompletionProvider implementation for OpenAI-compatible APIs.
+ * Covers OpenAI, Grok (xAI), DeepSeek, and any provider using the OpenAI protocol.
+ *
+ * Usage:
+ *   const provider = new OpenAICompletionProvider(client, { defaultTimeoutMs: 60000 });
+ *   const result = await provider.complete(request);
+ *
+ * For custom providers (Gemini, Tavily, etc.), implement CompletionProvider directly.
+ */
+export class OpenAICompletionProvider implements CompletionProvider {
+    constructor(
+        private readonly client: OpenAI,
+        private readonly options: { defaultTimeoutMs?: number } = {},
+    ) {}
+
+    async complete(request: CompletionRequest): Promise<CompletionResult> {
+        const completion = await this.client.chat.completions.create(
+            {
+                model: request.model,
+                messages: request.messages,
+                stream: false,
+                ...request.extra,
+            },
+            {
+                timeout: request.timeoutMs ?? this.options.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS,
+                signal: request.signal ?? undefined,
+            },
+        );
+        return extractResult(completion);
+    }
+}
+
+// ============================================================
+// Legacy convenience function (delegates to provider internally)
+// ============================================================
+
 /**
  * Executes a chat completion request.
- * Timeout, retry (exponential backoff), and signal cancellation are all
- * handled by the OpenAI SDK — no custom AbortController needed.
- * Throws on failure — caller (error mapper) handles all errors.
+ * @deprecated Prefer `new OpenAICompletionProvider(client).complete(request)` for new code.
+ * Kept for backward compatibility with existing MCP server entry points.
  */
 export async function executeCompletion(
     client: OpenAI,
     request: CompletionRequest,
     defaultTimeoutMs: number = DEFAULT_TIMEOUT_MS,
 ): Promise<CompletionResult> {
-    const completion = await client.chat.completions.create(
-        {
-            model: request.model,
-            messages: request.messages,
-            stream: false,
-            ...request.extra,
-        },
-        {
-            timeout: request.timeoutMs ?? defaultTimeoutMs,
-            signal: request.signal ?? undefined,
-        },
-    );
-    return extractResult(completion);
+    const provider = new OpenAICompletionProvider(client, {defaultTimeoutMs});
+    return provider.complete(request);
 }
+
+// ============================================================
+// Result Extraction (shared by provider)
+// ============================================================
 
 /**
  * Extracts normalized result from raw completion.
