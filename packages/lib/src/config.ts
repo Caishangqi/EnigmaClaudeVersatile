@@ -128,22 +128,43 @@ function resolveVersatileDir(): string | null {
         return versatileDir;
     }
 
-    // 2. Walk up from this file's directory to find project root (where package.json lives)
+    // 2. Walk up from this file's directory to find monorepo root.
+    //    In a monorepo, sub-packages also have package.json, so we can't
+    //    stop at the first one. Walk all the way up, collect candidates, pick best:
+    //      Priority 1: package.json with "workspaces" field (monorepo root)
+    //      Priority 2: first package.json found (fallback for non-monorepo)
     let current = path.dirname(new URL(import.meta.url).pathname);
     if (process.platform === "win32" && current.startsWith("/")) {
         current = current.slice(1);
     }
 
-    for (let i = 0; i < 5; i++) {
-        // Found project root if package.json exists here
+    let firstPkgDir: string | null = null;
+    let workspaceRoot: string | null = null;
+
+    for (let i = 0; i < 10; i++) {
         if (existsSync(path.join(current, "package.json"))) {
-            const dir = path.join(current, ".versatile");
-            versatileDir = ensureDir(dir);
-            return versatileDir;
+            if (!firstPkgDir) firstPkgDir = current;
+
+            // Check for workspaces field (monorepo root indicator)
+            if (!workspaceRoot) {
+                try {
+                    const pkg = JSON.parse(readFileSync(path.join(current, "package.json"), "utf-8"));
+                    if (pkg.workspaces) workspaceRoot = current;
+                } catch { /* ignore parse errors */ }
+            }
         }
+
         const parent = path.dirname(current);
         if (parent === current) break;
         current = parent;
+    }
+
+    // Use best candidate: workspace root > first package.json
+    const root = workspaceRoot ?? firstPkgDir;
+    if (root) {
+        const dir = path.join(root, ".versatile");
+        versatileDir = ensureDir(dir);
+        return versatileDir;
     }
 
     versatileDir = ""; // empty string = not found, cached
