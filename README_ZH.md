@@ -17,8 +17,8 @@ Claude Versatile 让 Claude Code 作为主控编排器，通过 MCP（Model Cont
 
 系统分为两层：
 
-- **Layer 1 -- 轻量 API 调用**：单次任务（代码审查、搜索、生成），通过 MCP Server 封装 API 调用
-- **Layer 2 -- Agent 委派**：自主只读 Agent，在独立子进程中运行 ReAct 推理循环，适用于复杂的多步骤代码分析
+- **Layer 1：轻量 API 调用**：单次任务（代码审查、搜索、生成），通过 MCP Server 封装 API 调用
+- **Layer 2：Agent 委派**：自主只读 Agent，在独立子进程中运行 ReAct 推理循环，适用于复杂的多步骤代码分析
 
 ## MCP 服务器
 
@@ -38,42 +38,100 @@ Claude Versatile 让 Claude Code 作为主控编排器，通过 MCP（Model Cont
 
 ### claude-versatile-agent
 
-自主只读代码分析 Agent。在子进程中运行 LLM 驱动的 ReAct 循环 -- 读取文件、搜索模式、推理分析，返回结构化结果。
+自主只读代码分析 Agent。在子进程中运行 LLM 驱动的 ReAct 循环，读取文件、搜索模式、推理分析，返回结构化结果。
 
 - 工具：`agent_execute(goal, context?, model?, maxIterations?, maxTimeMs?, wait?)`
 - 默认阻塞等待完成（`wait=true`），返回格式化纯文本结果
 - 辅助工具：`agent_wait`、`agent_status`、`agent_result`、`agent_cancel`
-- 严格只读 -- 所有修改以文本建议返回，由 Claude 审查后执行
+- 严格只读：所有修改以文本建议返回，由 Claude 审查后执行
 
 ## Skills
 
-MCP 工具之上的可选行为编排层。非必需 -- 工具本身已足够自解释 -- 但提供增强的上下文收集和结果呈现。
+MCP 工具之上的可选行为编排层。非必需（工具本身已足够自解释），但提供增强的上下文收集和结果呈现。
 
 - **codex-task**：自动收集代码上下文，组装结构化 prompt，委派给 `codex_chat`
 - **grok-search**：分析搜索意图，优化查询，选择 system prompt，委派给 `grok_search`
 
 ## 快速开始
 
-### 1. 安装依赖
+### 方式 A：通过 npm 安装（推荐）
 
 ```bash
+npm install -g claude-versatile
+```
+
+在你的项目目录中：
+
+```bash
+claude-versatile init
+```
+
+在 `.mcp.json` 中注册 MCP 服务器：
+
+```json
+{
+  "mcpServers": {
+    "codex": {
+      "type": "stdio",
+      "command": "claude-versatile-codex",
+      "args": [],
+      "env": {}
+    },
+    "grok": {
+      "type": "stdio",
+      "command": "claude-versatile-grok",
+      "args": [],
+      "env": {}
+    },
+    "agent": {
+      "type": "stdio",
+      "command": "claude-versatile-agent",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+
+### 方式 B：从源码安装
+
+```bash
+git clone https://github.com/Caishangqi/EnigmaClaudeVersatile.git
+cd EnigmaClaudeVersatile
 npm install
 npm run build
 ```
 
-### 2. 初始化配置
+使用本地路径在 `.mcp.json` 中注册 MCP 服务器：
 
-```bash
-npx claude-versatile init
+```json
+{
+  "mcpServers": {
+    "codex": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["<path-to-repo>/dist/mcp-servers/codex/index.js"],
+      "env": {}
+    },
+    "grok": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["<path-to-repo>/dist/mcp-servers/grok/index.js"],
+      "env": {}
+    },
+    "agent": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["<path-to-repo>/dist/mcp-servers/agent/index.js"],
+      "env": {}
+    }
+  }
+}
 ```
 
-这会创建：
-- `.claude/skills/` -- Skill 定义文件
-- `.versatile/` -- 配置模板（已 gitignore）
+### 配置 API Key
 
-### 3. 配置 API Key
-
-编辑生成的配置文件：
+编辑 `.versatile/` 中的配置文件：
 
 ```bash
 # OpenAI / Codex
@@ -86,36 +144,17 @@ npx claude-versatile init
 .versatile/agent.json           # defaultModel, maxIterations, maxTimeMs, singleCallTimeout
 ```
 
-### 4. 注册 MCP 服务器
+### 初始化 Skills 和配置（可选）
 
-添加到 `.mcp.json`（项目级或全局）：
-
-```json
-{
-  "mcpServers": {
-    "codex": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["<path-to>/dist/mcp-servers/codex/index.js"],
-      "env": {}
-    },
-    "grok": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["<path-to>/dist/mcp-servers/grok/index.js"],
-      "env": {}
-    },
-    "agent": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["<path-to>/dist/mcp-servers/agent/index.js"],
-      "env": {}
-    }
-  }
-}
+```bash
+npx claude-versatile init
 ```
 
-### 5. 重启 Claude Code
+这会创建：
+- `.claude/skills/`：Skill 定义文件
+- `.versatile/`：配置模板（已 gitignore）
+
+### 重启 Claude Code
 
 重新加载以激活新的 MCP 服务器。你应该能在可用工具中看到 `codex_chat`、`grok_search` 和 `agent_execute`。
 
@@ -156,9 +195,9 @@ ClaudeVersatile/
 ## 技术栈
 
 - TypeScript (Node.js, ES2022)
-- `@modelcontextprotocol/sdk` -- MCP 协议实现
-- `openai` -- OpenAI 兼容 API 客户端（同时用于 Grok/xAI）
-- `zod` -- 运行时 schema 校验
+- `@modelcontextprotocol/sdk`：MCP 协议实现
+- `openai`：OpenAI 兼容 API 客户端（同时用于 Grok/xAI）
+- `zod`：运行时 schema 校验
 
 ## 开发
 
@@ -171,14 +210,14 @@ npm test            # 运行测试 (vitest)
 
 Claude Versatile 遵循"Claude 保持主控"原则：
 
-- 外部模型严格只读 -- 不可修改文件、执行命令或操作 git
+- 外部模型严格只读：不可修改文件、执行命令或操作 git
 - 所有代码编辑由 Claude 审查外部模型建议后执行
 - 确保 Claude Code 的 rewind 机制能完整回滚所有变更
 - MCP Server 自读 `.versatile/` 配置，无需环境变量注入
-- Agent 在子进程中运行 -- 崩溃不影响 MCP Server
+- Agent 在子进程中运行：崩溃不影响 MCP Server
 - 工具调用使用 OpenAI function calling（`tool_calls`），而非手写 XML/JSON
 
-</p>
+<h1></h1>
 
 <p align="center">
 <a href="https://github.com/Caishangqi/EnigmaEngine/issues">

@@ -2,9 +2,16 @@
   "name": "claude-versatile",
   "version": "0.1.0",
   "description": "Claude Code orchestrator with external AI model delegation via MCP",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Caishangqi/EnigmaClaudeVersatile"
+  },
   "type": "module",
   "bin": {
-    "claude-versatile": "./dist/cli/init.js"
+    "claude-versatile": "./dist/cli/init.js",
+    "claude-versatile-codex": "./dist/mcp-servers/codex/index.js",
+    "claude-versatile-grok": "./dist/mcp-servers/grok/index.js",
+    "claude-versatile-agent": "./dist/mcp-servers/agent/index.js"
   },
   "files": [
     "dist/",

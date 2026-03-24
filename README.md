@@ -17,8 +17,8 @@ Claude Versatile lets Claude Code act as the primary orchestrator, delegating su
 
 The system is split into two layers:
 
-- **Layer 1 -- Direct API calls**: lightweight, single-shot tasks (code review, search, generation) routed through MCP Server wrappers
-- **Layer 2 -- Agent delegation**: an autonomous read-only Agent with its own ReAct reasoning loop, running in a separate process for complex multi-step analysis
+- **Layer 1: Direct API calls**: lightweight, single-shot tasks (code review, search, generation) routed through MCP Server wrappers
+- **Layer 2: Agent delegation**: an autonomous read-only Agent with its own ReAct reasoning loop, running in a separate process for complex multi-step analysis
 
 ## MCP Servers
 
@@ -38,42 +38,100 @@ Web search powered by Grok's built-in search capability via xAI API.
 
 ### claude-versatile-agent
 
-Autonomous read-only code analysis agent. Runs an LLM-driven ReAct loop in a child process -- reads files, searches patterns, reasons about code, and returns structured results.
+Autonomous read-only code analysis agent. Runs an LLM-driven ReAct loop in a child process, reads files, searches patterns, reasons about code, and returns structured results.
 
 - Tool: `agent_execute(goal, context?, model?, maxIterations?, maxTimeMs?, wait?)`
 - Default: blocks until completion (`wait=true`), returns formatted plain-text result
 - Additional tools: `agent_wait`, `agent_status`, `agent_result`, `agent_cancel`
-- Strictly read-only -- all modifications are suggested as text, executed by Claude after review
+- Strictly read-only: all modifications are suggested as text, executed by Claude after review
 
 ## Skills
 
-Optional behavior orchestration layers on top of MCP tools. Not required -- tools are self-describing -- but provide enhanced context assembly and result presentation.
+Optional behavior orchestration layers on top of MCP tools. Not required (tools are self-describing), but provide enhanced context assembly and result presentation.
 
 - **codex-task**: auto-collects code context, assembles structured prompts, delegates to `codex_chat`
 - **grok-search**: analyzes search intent, optimizes queries, selects system prompts, delegates to `grok_search`
 
 ## Quick Start
 
-### 1. Install dependencies
+### Option A: Install via npm (recommended)
 
 ```bash
+npm install -g claude-versatile
+```
+
+Then in your project directory:
+
+```bash
+claude-versatile init
+```
+
+Register MCP Servers in `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "codex": {
+      "type": "stdio",
+      "command": "claude-versatile-codex",
+      "args": [],
+      "env": {}
+    },
+    "grok": {
+      "type": "stdio",
+      "command": "claude-versatile-grok",
+      "args": [],
+      "env": {}
+    },
+    "agent": {
+      "type": "stdio",
+      "command": "claude-versatile-agent",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+
+### Option B: Install from source
+
+```bash
+git clone https://github.com/Caishangqi/EnigmaClaudeVersatile.git
+cd EnigmaClaudeVersatile
 npm install
 npm run build
 ```
 
-### 2. Initialize configuration
+Then register MCP Servers using local paths in `.mcp.json`:
 
-```bash
-npx claude-versatile init
+```json
+{
+  "mcpServers": {
+    "codex": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["<path-to-repo>/dist/mcp-servers/codex/index.js"],
+      "env": {}
+    },
+    "grok": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["<path-to-repo>/dist/mcp-servers/grok/index.js"],
+      "env": {}
+    },
+    "agent": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["<path-to-repo>/dist/mcp-servers/agent/index.js"],
+      "env": {}
+    }
+  }
+}
 ```
 
-This creates:
-- `.claude/skills/` -- Skill definition files
-- `.versatile/` -- Configuration templates (gitignored)
+### Configure API keys
 
-### 3. Configure API keys
-
-Edit the generated config files:
+Edit the generated config files in `.versatile/`:
 
 ```bash
 # OpenAI / Codex
@@ -86,36 +144,17 @@ Edit the generated config files:
 .versatile/agent.json           # defaultModel, maxIterations, maxTimeMs, singleCallTimeout
 ```
 
-### 4. Register MCP Servers
+### Initialize Skills and config (optional)
 
-Add to your `.mcp.json` (project-level or global):
-
-```json
-{
-  "mcpServers": {
-    "codex": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["<path-to>/dist/mcp-servers/codex/index.js"],
-      "env": {}
-    },
-    "grok": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["<path-to>/dist/mcp-servers/grok/index.js"],
-      "env": {}
-    },
-    "agent": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["<path-to>/dist/mcp-servers/agent/index.js"],
-      "env": {}
-    }
-  }
-}
+```bash
+npx claude-versatile init
 ```
 
-### 5. Restart Claude Code
+This creates:
+- `.claude/skills/`: Skill definition files
+- `.versatile/`: Configuration templates (gitignored)
+
+### Restart Claude Code
 
 Reload to pick up the new MCP servers. You should see `codex_chat`, `grok_search`, and `agent_execute` in the available tools.
 
@@ -156,9 +195,9 @@ ClaudeVersatile/
 ## Tech Stack
 
 - TypeScript (Node.js, ES2022)
-- `@modelcontextprotocol/sdk` -- MCP protocol implementation
-- `openai` -- OpenAI-compatible API client (also used for Grok/xAI)
-- `zod` -- Runtime schema validation
+- `@modelcontextprotocol/sdk`: MCP protocol implementation
+- `openai`: OpenAI-compatible API client (also used for Grok/xAI)
+- `zod`: Runtime schema validation
 
 ## Development
 
@@ -171,15 +210,14 @@ npm test            # Run tests (vitest)
 
 Claude Versatile follows a "Claude stays in control" principle:
 
-- External models are strictly read-only -- they cannot modify files, run commands, or access git
+- External models are strictly read-only: they cannot modify files, run commands, or access git
 - All code edits are executed by Claude after reviewing external model suggestions
 - This ensures Claude Code's rewind mechanism can fully roll back any changes
 - MCP servers self-read configuration from `.versatile/`, no env var injection needed
-- The Agent runs in a child process -- crashes don't affect the MCP server
+- The Agent runs in a child process: crashes don't affect the MCP server
 - Tool invocation uses OpenAI function calling (`tool_calls`), not hand-written XML/JSON
 
-</p>
-
+<h1></h1>
 <p align="center">
 <a href="https://github.com/Caishangqi/EnigmaEngine/issues">
 <img src="https://i.imgur.com/qPmjSXy.png" width="160" />
