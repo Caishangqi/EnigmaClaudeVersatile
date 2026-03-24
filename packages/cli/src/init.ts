@@ -3,7 +3,7 @@
 import {existsSync, mkdirSync, writeFileSync, readFileSync} from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
-import {TEMPLATES} from "../lib/config.js";
+import {TEMPLATES} from "@claude-versatile/lib/config.js";
 
 // ============================================================
 // Paths
@@ -11,8 +11,8 @@ import {TEMPLATES} from "../lib/config.js";
 
 const cwd = process.cwd();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// skills/ lives at package root: dist/cli/init.js → ../../skills/
-const SKILLS_SRC = path.resolve(__dirname, "../../skills");
+// skills/ lives at package root: dist/init.js → ../skills/
+const SKILLS_SRC = path.resolve(__dirname, "../skills");
 
 const SKILL_NAMES = ["codex-task", "grok-search"];
 

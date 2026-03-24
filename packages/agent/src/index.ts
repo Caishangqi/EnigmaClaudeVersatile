@@ -4,17 +4,17 @@ import {z} from "zod";
 import {fork} from "node:child_process";
 import {fileURLToPath} from "node:url";
 import path from "node:path";
-import {createServer, startServer, runServer} from "../../lib/bootstrap.js";
-import {formatTokens, formatDuration} from "../../lib/completion.js";
-import {TaskStore} from "../../agent/task-store.js";
-import {loadConfig, configValue, type CodexProviderConfig, type GrokProviderConfig, type AgentBehaviorConfig} from "../../lib/config.js";
-import type {ParentToWorkerMessage, WorkerToParentMessage, AgentResult, TaskState} from "../../agent/types.js";
+import {createServer, startServer, runServer} from "@claude-versatile/lib/bootstrap.js";
+import {formatTokens, formatDuration} from "@claude-versatile/lib/completion.js";
+import {TaskStore} from "./agent/task-store.js";
+import {loadConfig, configValue, type CodexProviderConfig, type GrokProviderConfig, type AgentBehaviorConfig} from "@claude-versatile/lib/config.js";
+import type {ParentToWorkerMessage, WorkerToParentMessage, AgentResult, TaskState} from "./agent/types.js";
 
 const store = new TaskStore();
 
 // Worker script path: dist/agent/worker.js
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const WORKER_PATH = path.resolve(__dirname, "../../agent/worker.js");
+const WORKER_PATH = path.resolve(__dirname, "./agent/worker.js");
 
 // Load configs
 const agentCfg = loadConfig<AgentBehaviorConfig>("agent.json");
@@ -93,7 +93,7 @@ function launchTask(goal: string, context: string | undefined, workingDir: strin
         goal, context,
         workingDir: workingDir || process.cwd(),
         model, maxIterations, maxTimeMs,
-        enabledTools: ["read_file", "list_dir", "search_pattern", "done"] as import("../../agent/types.js").AgentToolName[],
+        enabledTools: ["read_file", "list_dir", "search_pattern", "done"] as import("./agent/types.js").AgentToolName[],
         singleCallTimeout: SINGLE_CALL_TIMEOUT,
         env: collectEnv(),
     };

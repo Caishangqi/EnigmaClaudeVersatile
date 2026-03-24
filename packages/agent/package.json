@@ -1,0 +1,25 @@
+{
+  "name": "claude-versatile-agent",
+  "version": "0.1.0",
+  "description": "Claude Versatile autonomous read-only Agent MCP Server",
+  "type": "module",
+  "bin": {
+    "claude-versatile-agent": "./dist/index.js"
+  },
+  "files": ["dist/"],
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@claude-versatile/lib": "*",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "openai": "^4.104.0",
+    "zod": "^3.24.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Caishangqi/EnigmaClaudeVersatile",
+    "directory": "packages/agent"
+  },
+  "license": "MIT"
+}

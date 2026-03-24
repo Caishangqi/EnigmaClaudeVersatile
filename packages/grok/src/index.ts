@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 import {z} from "zod";
-import {createClientFactory} from "../../lib/client.js";
-import {executeCompletion, formatUsageLine} from "../../lib/completion.js";
-import {mapErrorToResponse} from "../../lib/errors.js";
-import {createServer, startServer, runServer} from "../../lib/bootstrap.js";
-import {loadConfig, configValue, type GrokProviderConfig} from "../../lib/config.js";
+import {createClientFactory} from "@claude-versatile/lib/client.js";
+import {executeCompletion, formatUsageLine} from "@claude-versatile/lib/completion.js";
+import {mapErrorToResponse} from "@claude-versatile/lib/errors.js";
+import {createServer, startServer, runServer} from "@claude-versatile/lib/bootstrap.js";
+import {loadConfig, configValue, type GrokProviderConfig} from "@claude-versatile/lib/config.js";
 
 const cfg = loadConfig<GrokProviderConfig>("grok.agent.json");
 

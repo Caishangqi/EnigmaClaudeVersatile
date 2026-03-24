@@ -1,0 +1,25 @@
+{
+  "name": "claude-versatile-grok",
+  "version": "0.1.0",
+  "description": "Claude Versatile MCP Server for Grok web search via xAI API",
+  "type": "module",
+  "bin": {
+    "claude-versatile-grok": "./dist/index.js"
+  },
+  "files": ["dist/"],
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@claude-versatile/lib": "*",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "openai": "^4.104.0",
+    "zod": "^3.24.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Caishangqi/EnigmaClaudeVersatile",
+    "directory": "packages/grok"
+  },
+  "license": "MIT"
+}

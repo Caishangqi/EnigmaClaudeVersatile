@@ -1,6 +1,6 @@
 import type OpenAI from "openai";
 import type {AgentConfig, AgentResult, AgentToolName, PlannerDecision, PlannerAction} from "./types.js";
-import {executeCompletion} from "../lib/completion.js";
+import {executeCompletion} from "@claude-versatile/lib/completion.js";
 import {ContextManager} from "./context-manager.js";
 import {getToolDefs} from "./tools.js";
 
@@ -225,7 +225,7 @@ interface ParsedDecision extends PlannerDecision {
 }
 
 /** Parse LLM response into a PlannerDecision. Prefers tool_calls, falls back to content parsing. */
-function parseDecision(completion: import("../lib/types.js").CompletionResult): ParsedDecision | null {
+function parseDecision(completion: import("@claude-versatile/lib/types.js").CompletionResult): ParsedDecision | null {
     // Primary: OpenAI function calling tool_calls
     if (completion.toolCalls && completion.toolCalls.length > 0) {
         const tc = completion.toolCalls[0]; // Process one tool call at a time

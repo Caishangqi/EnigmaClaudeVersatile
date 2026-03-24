@@ -1,0 +1,25 @@
+{
+  "name": "claude-versatile",
+  "version": "0.1.0",
+  "description": "Claude Code orchestrator with external AI model delegation via MCP",
+  "type": "module",
+  "bin": {
+    "claude-versatile": "./dist/init.js"
+  },
+  "files": [
+    "dist/",
+    "skills/"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@claude-versatile/lib": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Caishangqi/EnigmaClaudeVersatile",
+    "directory": "packages/cli"
+  },
+  "license": "MIT"
+}
