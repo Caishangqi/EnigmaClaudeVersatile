@@ -1,14 +1,15 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "Node16",
-    "moduleResolution": "Node16",
     "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "declaration": true
+    "rootDir": "."
   },
-  "include": ["src/**/*"]
+  "include": [],
+  "references": [
+    { "path": "packages/lib" },
+    { "path": "packages/codex" },
+    { "path": "packages/grok" },
+    { "path": "packages/agent" },
+    { "path": "packages/cli" }
+  ]
 }

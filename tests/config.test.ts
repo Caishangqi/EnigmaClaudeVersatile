@@ -1,5 +1,5 @@
 import {describe, it, expect, beforeEach, afterEach} from "vitest";
-import {configValue, configRequired, TEMPLATES, PLACEHOLDER_KEY} from "../src/lib/config.js";
+import {configValue, configRequired, TEMPLATES, PLACEHOLDER_KEY} from "../packages/lib/src/config.js";
 
 // ============================================================
 // configValue

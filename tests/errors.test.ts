@@ -1,6 +1,6 @@
 import {describe, it, expect} from "vitest";
-import {mapErrorToResponse} from "../src/lib/errors.js";
-import {NoChoicesError} from "../src/lib/completion.js";
+import {mapErrorToResponse} from "../packages/lib/src/errors.js";
+import {NoChoicesError} from "../packages/lib/src/completion.js";
 import OpenAI from "openai";
 
 const ctx = {serviceName: "TestService", model: "test-model"};

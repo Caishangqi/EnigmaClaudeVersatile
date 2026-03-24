@@ -1,34 +1,23 @@
 {
-  "name": "claude-versatile",
+  "name": "claude-versatile-root",
   "version": "0.1.0",
+  "private": true,
   "description": "Claude Code orchestrator with external AI model delegation via MCP",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Caishangqi/EnigmaClaudeVersatile"
-  },
   "type": "module",
-  "bin": {
-    "claude-versatile": "./dist/cli/init.js",
-    "claude-versatile-codex": "./dist/mcp-servers/codex/index.js",
-    "claude-versatile-grok": "./dist/mcp-servers/grok/index.js",
-    "claude-versatile-agent": "./dist/mcp-servers/agent/index.js"
-  },
-  "files": [
-    "dist/",
-    "skills/"
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "build": "tsc",
-    "test": "vitest run",
-    "prepublishOnly": "npm run build && npm test"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.0",
-    "openai": "^4.104.0",
-    "zod": "^3.24.0"
+    "build": "npm run build -w packages/lib && npm run build --workspaces --if-present",
+    "test": "vitest run"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Caishangqi/EnigmaClaudeVersatile"
+  },
+  "license": "MIT"
 }

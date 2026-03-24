@@ -1,6 +1,6 @@
 import {describe, it, expect} from "vitest";
-import {formatTokens, formatDuration, formatUsageLine} from "../src/lib/completion.js";
-import type {CompletionResult} from "../src/lib/types.js";
+import {formatTokens, formatDuration, formatUsageLine} from "../packages/lib/src/completion.js";
+import type {CompletionResult} from "../packages/lib/src/types.js";
 
 // ============================================================
 // formatTokens
