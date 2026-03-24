@@ -217,7 +217,6 @@ Claude Versatile follows a "Claude stays in control" principle:
 - The Agent runs in a child process: crashes don't affect the MCP server
 - Tool invocation uses OpenAI function calling (`tool_calls`), not hand-written XML/JSON
 
-<h1></h1>
 <p align="center">
 <a href="https://github.com/Caishangqi/EnigmaEngine/issues">
 <img src="https://i.imgur.com/qPmjSXy.png" width="160" />

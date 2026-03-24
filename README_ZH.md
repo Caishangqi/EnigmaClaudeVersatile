@@ -217,7 +217,6 @@ Claude Versatile 遵循"Claude 保持主控"原则：
 - Agent 在子进程中运行：崩溃不影响 MCP Server
 - 工具调用使用 OpenAI function calling（`tool_calls`），而非手写 XML/JSON
 
-<h1></h1>
 
 <p align="center">
 <a href="https://github.com/Caishangqi/EnigmaEngine/issues">
