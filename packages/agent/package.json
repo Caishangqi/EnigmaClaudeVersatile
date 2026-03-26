@@ -1,6 +1,6 @@
 {
   "name": "claude-versatile-agent",
-  "version": "0.3.0-alpha.3",
+  "version": "0.3.0-alpha.4",
   "description": "Claude Versatile autonomous read-only Agent MCP Server",
   "type": "module",
   "bin": {
