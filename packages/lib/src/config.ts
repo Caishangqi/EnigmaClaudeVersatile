@@ -93,10 +93,12 @@ export interface ModelRoute {
     apiKeyEnv: string;
     /** Env var name for base URL (e.g. "GROK_BASE_URL"). */
     baseUrlEnv: string;
+    /** Whether the model supports OpenAI function calling (tools param). Default: true. */
+    supportsFunctionCalling?: boolean;
 }
 
 export const MODEL_ROUTES: ModelRoute[] = [
-    {prefix: "grok",     configFile: "grok.agent.json",  apiKeyEnv: "GROK_API_KEY",    baseUrlEnv: "GROK_BASE_URL"},
+    {prefix: "grok",     configFile: "grok.agent.json",  apiKeyEnv: "GROK_API_KEY",    baseUrlEnv: "GROK_BASE_URL",  supportsFunctionCalling: false},
     // Add new providers here:
     // {prefix: "deepseek", configFile: "deepseek.agent.json", apiKeyEnv: "DEEPSEEK_API_KEY", baseUrlEnv: "DEEPSEEK_BASE_URL"},
     // Default fallback (OpenAI) — must be last

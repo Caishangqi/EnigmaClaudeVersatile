@@ -86,13 +86,13 @@ export class Planner {
                 await this.summarizeContext();
             }
 
-            // Call LLM with function calling
+            // Call LLM (with function calling if supported, otherwise plain chat)
             const completion = await this.provider.complete({
                 model: this.config.model,
-                messages: this.contextManager.getMessages(),
+                messages: this.contextManager.getMessages(this.config.supportsFunctionCalling),
                 signal: this.abortController.signal,
                 timeoutMs: this.config.singleCallTimeout,
-                extra: { tools: this.openaiTools },
+                ...(this.config.supportsFunctionCalling && { extra: { tools: this.openaiTools } }),
             });
 
             this.totalTokensUsed += completion.usage?.totalTokens ?? 0;
@@ -106,7 +106,10 @@ export class Planner {
                     return this.buildForcedResult(startTime, "Failed to parse LLM response after multiple attempts.", "parse_failure");
                 }
                 this.contextManager.addEntry("assistant", completion.content !== "(empty response)" ? completion.content : "I need to use a tool to proceed.");
-                this.contextManager.addEntry("user", "You MUST call a tool. Use read_file to read code, or done to return your answer.");
+                const retryHint = this.config.supportsFunctionCalling
+                    ? "You MUST call a tool. Use read_file to read code, or done to return your answer."
+                    : "You MUST respond with <thought>...</thought> and <action>{\"tool\": \"...\", \"args\": {...}}</action>. Use read_file to read code, or done to return your answer.";
+                this.contextManager.addEntry("user", retryHint);
                 this.iterationCount++;
                 continue;
             }
@@ -131,9 +134,14 @@ export class Planner {
             const {tool, args} = decision.action;
             const toolDef = this.tools.get(tool);
             if (!toolDef) {
-                // Add assistant message with tool_call, then tool error response
-                this.addToolCallToContext(decision.toolCallId!, tool, JSON.stringify(args));
-                this.contextManager.addEntry("tool", `Error: Unknown tool "${tool}". Available: ${[...this.tools.keys()].join(", ")}`, true, decision.toolCallId);
+                const errorMsg = `Error: Unknown tool "${tool}". Available: ${[...this.tools.keys()].join(", ")}`;
+                if (this.config.supportsFunctionCalling) {
+                    this.addToolCallToContext(decision.toolCallId!, tool, JSON.stringify(args));
+                    this.contextManager.addEntry("tool", errorMsg, true, decision.toolCallId);
+                } else {
+                    this.contextManager.addEntry("assistant", `<action>{"tool": "${tool}", "args": ${JSON.stringify(args)}}</action>`);
+                    this.contextManager.addEntry("user", `[Tool Result]:\n${errorMsg}`);
+                }
                 this.iterationCount++;
                 continue;
             }
@@ -174,10 +182,18 @@ export class Planner {
                 }
             }
 
-            // Add assistant tool_call + tool result to context (OpenAI function calling protocol)
-            this.addToolCallToContext(decision.toolCallId!, tool, JSON.stringify(args));
-            const toolOutput = result.success ? result.output : `[ERROR] ${result.output}`;
-            this.contextManager.addEntry("tool", toolOutput, true, decision.toolCallId);
+            // Add assistant tool_call + tool result to context
+            if (this.config.supportsFunctionCalling) {
+                // OpenAI function calling protocol
+                this.addToolCallToContext(decision.toolCallId!, tool, JSON.stringify(args));
+                const toolOutput = result.success ? result.output : `[ERROR] ${result.output}`;
+                this.contextManager.addEntry("tool", toolOutput, true, decision.toolCallId);
+            } else {
+                // XML fallback: plain assistant + user messages
+                this.contextManager.addEntry("assistant", `<action>{"tool": "${tool}", "args": ${JSON.stringify(args)}}</action>`);
+                const toolOutput = result.success ? result.output : `[ERROR] ${result.output}`;
+                this.contextManager.addEntry("user", `[Tool Result]:\n${toolOutput}`);
+            }
 
             this.iterationCount++;
             this.callbacks.onIteration(
@@ -203,12 +219,46 @@ export class Planner {
 
     private buildSystemPrompt(): string {
         const base = "You are a code analysis agent. Read-only. You MUST read files with tools before answering. NEVER answer from memory. Use read_file, list_dir, or search_pattern to gather information, then call done with your findings.";
+
+        // Non-function-calling models: describe tools and output format in the prompt
+        if (!this.config.supportsFunctionCalling) {
+            const toolDescriptions = this.buildToolDescriptions();
+            const xmlInstructions = "\n\nYou MUST respond in this EXACT format for EVERY response:\n\n" +
+                "<thought>Your reasoning about what to do next</thought>\n" +
+                "<action>{\"tool\": \"TOOL_NAME\", \"args\": {\"param\": \"value\"}}</action>\n\n" +
+                "Available tools:\n" + toolDescriptions + "\n\n" +
+                "CRITICAL RULES:\n" +
+                "- EVERY response MUST contain both <thought> and <action> tags\n" +
+                "- The <action> tag MUST contain valid JSON with \"tool\" and \"args\" keys\n" +
+                "- Do NOT output anything outside of these tags\n" +
+                "- When finished, use the done tool with summary and answer";
+            if (this.config.autoMode) {
+                return base + xmlInstructions +
+                    "\n\nIMPORTANT: You MUST call the 'plan' tool FIRST before any other tool. " +
+                    "Estimate how many tool calls you'll need and describe your approach. " +
+                    "After planning, proceed with your analysis.";
+            }
+            return base + xmlInstructions;
+        }
+
         if (this.config.autoMode) {
             return base + "\n\nIMPORTANT: You MUST call the 'plan' tool FIRST before any other tool. " +
                 "Estimate how many tool calls you'll need and describe your approach. " +
                 "After planning, proceed with your analysis.";
         }
         return base;
+    }
+
+    /** Build human-readable tool descriptions for XML prompt mode. */
+    private buildToolDescriptions(): string {
+        const lines: string[] = [];
+        for (const def of this.tools.values()) {
+            const params = Object.entries(def.parameters)
+                .map(([name, p]) => `${name}: ${p.type}${p.required ? "" : "?"}`)
+                .join(", ");
+            lines.push(`- ${def.name}(${params}) — ${def.description}`);
+        }
+        return lines.join("\n");
     }
 
     /** Add an assistant message with a tool_call to context. */

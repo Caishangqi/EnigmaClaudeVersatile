@@ -62,6 +62,8 @@ export interface AgentConfig {
     autoMode: boolean;
     /** Maximum cumulative token budget. 0 = unlimited. Only enforced when autoMode=true. */
     maxTokenBudget: number;
+    /** Whether the model supports OpenAI function calling. When false, uses prompt-based XML format. */
+    supportsFunctionCalling: boolean;
     /** Environment variables passed to Worker (API keys, base URLs). */
     env: Record<string, string>;
 }

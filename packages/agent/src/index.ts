@@ -7,7 +7,7 @@ import path from "node:path";
 import {createServer, startServer, runServer} from "@claude-versatile/lib/bootstrap.js";
 import {formatTokens, formatDuration} from "@claude-versatile/lib/completion.js";
 import {TaskStore} from "./agent/task-store.js";
-import {loadConfig, configValue, type BaseProviderConfig, type AgentBehaviorConfig, MODEL_ROUTES} from "@claude-versatile/lib/config.js";
+import {loadConfig, configValue, type BaseProviderConfig, type AgentBehaviorConfig, MODEL_ROUTES, resolveModelRoute} from "@claude-versatile/lib/config.js";
 import type {ParentToWorkerMessage, WorkerToParentMessage, AgentResult, TaskState} from "./agent/types.js";
 
 const store = new TaskStore();
@@ -100,6 +100,10 @@ function launchTask(goal: string, context: string | undefined, workingDir: strin
         ? ["plan", "read_file", "list_dir", "search_pattern", "done"]
         : ["read_file", "list_dir", "search_pattern", "done"];
 
+    // Resolve model capabilities from route table
+    const route = resolveModelRoute(model);
+    const supportsFunctionCalling = route.supportsFunctionCalling !== false;
+
     const config = {
         goal, context,
         workingDir: workingDir || process.cwd(),
@@ -110,6 +114,7 @@ function launchTask(goal: string, context: string | undefined, workingDir: strin
         singleCallTimeout: SINGLE_CALL_TIMEOUT,
         autoMode,
         maxTokenBudget,
+        supportsFunctionCalling,
         env: collectEnv(),
     };
 

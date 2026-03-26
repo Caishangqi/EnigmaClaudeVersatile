@@ -51,27 +51,44 @@ export class ContextManager {
     }
 
     /** Convert entries to OpenAI message format, including function calling messages. */
-    getMessages(): OpenAI.ChatCompletionMessageParam[] {
+    getMessages(supportsFunctionCalling = true): OpenAI.ChatCompletionMessageParam[] {
         return this.entries.map((e): OpenAI.ChatCompletionMessageParam => {
-            // Assistant message with tool_call
-            if (e.role === "assistant" && e.toolCall) {
-                return {
-                    role: "assistant",
-                    content: null,
-                    tool_calls: [{
-                        id: e.toolCall.id,
-                        type: "function" as const,
-                        function: {name: e.toolCall.name, arguments: e.toolCall.arguments},
-                    }],
-                };
-            }
-            // Tool response message
-            if (e.role === "tool" && e.toolCallId) {
-                return {
-                    role: "tool",
-                    content: e.content,
-                    tool_call_id: e.toolCallId,
-                };
+            if (supportsFunctionCalling) {
+                // Assistant message with tool_call (OpenAI function calling protocol)
+                if (e.role === "assistant" && e.toolCall) {
+                    return {
+                        role: "assistant",
+                        content: null,
+                        tool_calls: [{
+                            id: e.toolCall.id,
+                            type: "function" as const,
+                            function: {name: e.toolCall.name, arguments: e.toolCall.arguments},
+                        }],
+                    };
+                }
+                // Tool response message
+                if (e.role === "tool" && e.toolCallId) {
+                    return {
+                        role: "tool",
+                        content: e.content,
+                        tool_call_id: e.toolCallId,
+                    };
+                }
+            } else {
+                // XML fallback: convert tool_call to plain assistant message
+                if (e.role === "assistant" && e.toolCall) {
+                    return {
+                        role: "assistant",
+                        content: `<action>{"tool": "${e.toolCall.name}", "args": ${e.toolCall.arguments}}</action>`,
+                    };
+                }
+                // XML fallback: convert tool response to user message
+                if (e.role === "tool" && e.toolCallId) {
+                    return {
+                        role: "user",
+                        content: `[Tool Result]:\n${e.content}`,
+                    };
+                }
             }
             // Regular message
             return {role: e.role as "system" | "user" | "assistant", content: e.content};
