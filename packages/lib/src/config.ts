@@ -40,6 +40,8 @@ export interface AgentBehaviorConfig {
     autoMode: boolean;
     /** Maximum cumulative token budget for autoMode. Default: 100000. 0 = unlimited. */
     maxTokenBudget: number;
+    /** List of enabled tool names. If omitted, all built-in tools are enabled. */
+    enabledTools?: string[];
 }
 
 // ============================================================
