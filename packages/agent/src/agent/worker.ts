@@ -5,6 +5,7 @@ import {OpenAICompletionProvider} from "@claude-versatile/lib/completion.js";
 import {resolveModelRoute} from "@claude-versatile/lib/config.js";
 import type {CompletionProvider} from "@claude-versatile/lib/types.js";
 import {Planner} from "./planner.js";
+import {createBuiltinRegistry} from "./tools/index.js";
 import type {ParentToWorkerMessage, WorkerToParentMessage, AgentConfig} from "./types.js";
 
 let currentPlanner: Planner | null = null;
@@ -35,12 +36,14 @@ process.on("message", (msg: ParentToWorkerMessage) => {
 async function runAgent(config: AgentConfig): Promise<void> {
     try {
         const provider = createProviderFromEnv(config.env, config.model);
+        const registry = createBuiltinRegistry(config.env);
+        const tools = registry.getEnabled(config.enabledTools);
 
         currentPlanner = new Planner(provider, config, {
             onIteration: (step, iteration, filesRead, tokensUsed) => {
                 send({type: "status", currentStep: step, iterationCount: iteration, filesRead, tokensUsed});
             },
-        });
+        }, tools);
 
         const result = await currentPlanner.run();
         send({type: "complete", result});

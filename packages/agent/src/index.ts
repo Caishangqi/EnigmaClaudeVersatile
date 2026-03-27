@@ -92,13 +92,18 @@ const textErr = (s: string) => ({content: [{type: "text" as const, text: s}], is
 // Task Lifecycle Helpers
 // ============================================================
 
+const DEFAULT_ENABLED_TOOLS = ["plan", "read_file", "list_dir", "search_pattern", "web_search", "done"];
+
 /** Launch a worker process for a task. Returns the task. */
 function launchTask(goal: string, context: string | undefined, workingDir: string, model: string, maxIterations: number, maxTimeMs: number, autoMode: boolean, maxTokenBudget: number): TaskState {
     // When autoMode, ensure hardCap is at least 50
     const effectiveMaxIterations = autoMode ? Math.max(maxIterations, 50) : maxIterations;
-    const enabledTools: import("./agent/types.js").AgentToolName[] = autoMode
-        ? ["plan", "read_file", "list_dir", "search_pattern", "done"]
-        : ["read_file", "list_dir", "search_pattern", "done"];
+
+    // enabledTools: config-driven with sensible defaults; autoMode includes plan, non-autoMode excludes it
+    const configuredTools = agentCfg.enabledTools ?? DEFAULT_ENABLED_TOOLS;
+    const enabledTools = autoMode
+        ? configuredTools
+        : configuredTools.filter(t => t !== "plan");
 
     // Resolve model capabilities from route table
     const route = resolveModelRoute(model);

@@ -72,13 +72,31 @@ export interface AgentConfig {
 // Agent Tool System
 // ============================================================
 
-export type AgentToolName = "read_file" | "list_dir" | "search_pattern" | "done" | "plan";
+/** Built-in tool names with type safety and IDE auto-completion. */
+export type BuiltinToolName = "read_file" | "list_dir" | "search_pattern" | "done" | "plan" | "web_search";
+
+/** Tool name: built-in names are type-checked, custom tools use plain string. */
+export type AgentToolName = BuiltinToolName | (string & {});
+
+/** Optional metadata for Planner behavior driven by tool properties. */
+export interface AgentToolMetadata {
+    /** Tool category for documentation/filtering. */
+    category?: "core" | "filesystem" | "external" | "custom";
+    /** If true, Planner tracks the 'path' arg in filesRead. */
+    tracksFileRead?: boolean;
+    /** If true, Planner skips repetition detection for this tool. */
+    skipRepetitionCheck?: boolean;
+    /** Hint text to append to system prompt when this tool is available. */
+    systemPromptHint?: string;
+}
 
 export interface AgentToolDef {
     name: AgentToolName;
     description: string;
     parameters: Record<string, AgentToolParamDef>;
     execute: (args: Record<string, unknown>, workingDir: string) => Promise<AgentToolResult>;
+    /** Optional metadata for Planner special handling. */
+    metadata?: AgentToolMetadata;
 }
 
 export interface AgentToolParamDef {

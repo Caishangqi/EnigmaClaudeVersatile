@@ -1,7 +1,6 @@
-import type {AgentConfig, AgentResult, AgentToolName, PlannerDecision, PlannerAction} from "./types.js";
+import type {AgentConfig, AgentResult, AgentToolName, AgentToolDef, PlannerDecision, PlannerAction} from "./types.js";
 import type {CompletionProvider, CompletionRequest} from "@claude-versatile/lib/types.js";
 import {ContextManager} from "./context-manager.js";
-import {getToolDefs} from "./tools.js";
 
 const MAX_PARSE_FAILURES = 3;
 const SUMMARIZE_TIMEOUT = 30_000;
@@ -21,7 +20,7 @@ export class Planner {
     private config: AgentConfig;
     private callbacks: PlannerCallbacks;
     private contextManager: ContextManager;
-    private tools: Map<AgentToolName, import("./types.js").AgentToolDef>;
+    private tools: Map<string, AgentToolDef>;
     private openaiTools: Array<{type: "function"; function: {name: string; description: string; parameters: Record<string, unknown>}}>;
     private abortController = new AbortController();
     private filesRead = new Set<string>();
@@ -36,12 +35,12 @@ export class Planner {
     private readonly maxTokenBudget: number;
     private redirectCount = 0;
 
-    constructor(provider: CompletionProvider, config: AgentConfig, callbacks: PlannerCallbacks) {
+    constructor(provider: CompletionProvider, config: AgentConfig, callbacks: PlannerCallbacks, tools: Map<string, AgentToolDef>) {
         this.provider = provider;
         this.config = config;
         this.callbacks = callbacks;
         this.contextManager = new ContextManager();
-        this.tools = getToolDefs(config.enabledTools);
+        this.tools = tools;
         this.openaiTools = buildOpenAITools(this.tools);
 
         // L1: autoMode uses maxIterations as hard cap; non-autoMode uses it directly
@@ -159,13 +158,13 @@ export class Planner {
                 } catch { /* keep current effectiveMax */ }
             }
 
-            // Track files read
-            if (tool === "read_file" && args.path) {
+            // Track files read (metadata-driven)
+            if (toolDef.metadata?.tracksFileRead && args.path) {
                 this.filesRead.add(String(args.path));
             }
 
-            // L2: Repetition detection (skip plan and done tools)
-            if (tool !== "plan" && tool !== "done") {
+            // L2: Repetition detection (skip tools with skipRepetitionCheck metadata)
+            if (!toolDef.metadata?.skipRepetitionCheck) {
                 this.contextManager.trackToolCall(tool, JSON.stringify(args));
                 if (this.contextManager.detectRepetition()) {
                     this.redirectCount++;
@@ -218,7 +217,14 @@ export class Planner {
     // ============================================================
 
     private buildSystemPrompt(): string {
-        const base = "You are a code analysis agent. Read-only. You MUST read files with tools before answering. NEVER answer from memory. Use read_file, list_dir, or search_pattern to gather information, then call done with your findings.";
+        let base = "You are a code analysis agent. Read-only. You MUST read files with tools before answering. NEVER answer from memory. Use read_file, list_dir, or search_pattern to gather information, then call done with your findings.";
+
+        // Metadata-driven: collect system prompt hints from all enabled tools
+        for (const tool of this.tools.values()) {
+            if (tool.metadata?.systemPromptHint) {
+                base += "\n\n" + tool.metadata.systemPromptHint;
+            }
+        }
 
         // Non-function-calling models: describe tools and output format in the prompt
         if (!this.config.supportsFunctionCalling) {
@@ -305,7 +311,7 @@ export class Planner {
 // ============================================================
 
 /** Convert Agent tool defs to OpenAI function calling format. */
-function buildOpenAITools(tools: Map<AgentToolName, import("./types.js").AgentToolDef>): Array<{type: "function"; function: {name: string; description: string; parameters: Record<string, unknown>}}> {
+function buildOpenAITools(tools: Map<string, AgentToolDef>): Array<{type: "function"; function: {name: string; description: string; parameters: Record<string, unknown>}}> {
     const result: Array<{type: "function"; function: {name: string; description: string; parameters: Record<string, unknown>}}> = [];
     for (const def of tools.values()) {
         const properties: Record<string, unknown> = {};
