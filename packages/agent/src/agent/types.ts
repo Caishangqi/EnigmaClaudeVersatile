@@ -73,7 +73,7 @@ export interface AgentConfig {
 // ============================================================
 
 /** Built-in tool names with type safety and IDE auto-completion. */
-export type BuiltinToolName = "read_file" | "list_dir" | "search_pattern" | "done" | "plan" | "web_search";
+export type BuiltinToolName = "read_file" | "list_dir" | "search_pattern" | "done" | "plan" | "web_search" | "web_search_tavily";
 
 /** Tool name: built-in names are type-checked, custom tools use plain string. */
 export type AgentToolName = BuiltinToolName | (string & {});

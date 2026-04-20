@@ -40,6 +40,9 @@ function collectEnv(): Record<string, string> {
         if (key) env[route.apiKeyEnv] = key;
         if (url) env[route.baseUrlEnv] = url;
     }
+    // Tavily is a search API, not a model provider — propagate its key directly from env
+    const tavilyKey = process.env["TAVILY_API_KEY"];
+    if (tavilyKey) env["TAVILY_API_KEY"] = tavilyKey;
     return env;
 }
 
@@ -92,7 +95,7 @@ const textErr = (s: string) => ({content: [{type: "text" as const, text: s}], is
 // Task Lifecycle Helpers
 // ============================================================
 
-const DEFAULT_ENABLED_TOOLS = ["plan", "read_file", "list_dir", "search_pattern", "web_search", "done"];
+const DEFAULT_ENABLED_TOOLS = ["plan", "read_file", "list_dir", "search_pattern", "web_search", "web_search_tavily", "done"];
 
 /** Launch a worker process for a task. Returns the task. */
 function launchTask(goal: string, context: string | undefined, workingDir: string, model: string, maxIterations: number, maxTimeMs: number, autoMode: boolean, maxTokenBudget: number): TaskState {
