@@ -10,6 +10,7 @@
     { "path": "packages/codex" },
     { "path": "packages/grok" },
     { "path": "packages/agent" },
+    { "path": "packages/tavily" },
     { "path": "packages/cli" }
   ]
 }
