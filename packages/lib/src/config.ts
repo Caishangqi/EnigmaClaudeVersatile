@@ -63,6 +63,10 @@ export const TEMPLATES: Record<string, unknown> = {
         timeout: 60000,
         maxRetries: 3,
     },
+    "tavily.agent.json": {
+        apiKey: "YOUR_API_KEY_HERE",
+        maxResults: 5,
+    },
     "agent.json": {
         defaultModel: "gpt-4o",
         maxIterations: 20,
